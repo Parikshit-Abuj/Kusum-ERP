@@ -8,11 +8,10 @@
 <form class="panel form-panel" method="post" action="/urd-purchases" data-urd-form>
   <section class="form-section urd-customer-section">
     <div class="urd-section-heading"><div><h2>Purchase details</h2><p>Enter the mobile number first to load an existing customer, or create a new profile.</p></div></div>
-    <div class="form-grid four urd-purchase-meta">
+    <div class="form-grid three urd-purchase-meta">
       <label>URD No.<input name="purchaseNumber" readonly value="<%= typeof purchaseNumber !== 'undefined' ? purchaseNumber : '' %>" placeholder="Assigned when saved"></label>
       <label>Date *<input name="purchaseDate" type="date" required value="<%= dateInput() %>"></label>
       <label>Mobile number<input name="customerPhone" inputmode="numeric" autocomplete="tel" maxlength="15" placeholder="Optional mobile number" data-customer-phone autofocus></label>
-      <label>Metal *<select name="metal" data-urd-metal><option value="GOLD" selected>Gold</option><option value="SILVER">Silver</option><option value="PLATINUM">Platinum</option><option value="OTHER">Other</option></select></label>
     </div>
     <section class="customer-lookup" data-customer-lookup>
       <input type="hidden" name="customerId" data-customer-id>
@@ -38,21 +37,31 @@
       </div>
     </section>
   </section>
-  <section class="form-section"><h2>Weight &amp; rate</h2><div class="form-grid four">
-    <label>Purity
-      <input name="purity" data-urd-purity maxlength="50" placeholder="e.g. 22K, 24K, 925, 99.9">
-    </label>
-    <label>Gross weight (g)<input name="grossWeight" type="number" step="0.001" min="0" placeholder="0.000" data-urd-gross></label>
-    <label>Net weight (g) *<input name="netWeight" type="number" step="0.001" min="0.001" required placeholder="0.000" data-urd-net></label>
-    <label>Rate / gram (₹) *<input name="ratePerGram" type="number" step="0.01" min="0.01" required placeholder="0.00" data-urd-rate data-rate-22="<%= rateInfo.rate ? Number(rateInfo.rate.gold22k) : 0 %>" data-rate-24="<%= rateInfo.rate ? Number(rateInfo.rate.gold24k) : 0 %>" data-rate-silver="<%= rateInfo.rate ? Number(rateInfo.rate.silver) : 0 %>"></label>
-  </div></section>
+  <section class="form-section urd-items-section" data-urd-items>
+    <div class="urd-section-heading"><div><h2>Items received</h2><p>Add every old-gold or silver item under this one URD receipt. Each row is retained in the PDF.</p></div><button class="button secondary small" type="button" data-urd-add-item>+ Add item</button></div>
+    <div class="urd-item-rows" data-urd-item-rows></div>
+    <template data-urd-item-template>
+      <div class="urd-item-row" data-urd-item-row>
+        <div class="urd-item-row-head"><strong>Item <span data-urd-item-number>1</span></strong><button class="icon-button" type="button" data-urd-remove-item title="Remove item">✕</button></div>
+        <div class="urd-item-grid">
+          <label class="urd-item-description">Item description *<input name="urdItemDescription" required data-urd-item-description data-uppercase placeholder="e.g. Gold chain"></label>
+          <label>Metal *<select name="urdItemMetal" required data-urd-item-metal><option value="GOLD">Gold</option><option value="SILVER">Silver</option><option value="PLATINUM">Platinum</option><option value="OTHER">Other</option></select></label>
+          <label>Purity<input name="urdItemPurity" data-urd-item-purity data-urd-purity-manual maxlength="50" placeholder="e.g. 22K, 925, 99.9"></label>
+          <label>Gross wt. (g)<input name="urdItemGrossWeight" type="number" step="0.001" min="0" data-urd-item-gross placeholder="0.000"></label>
+          <label>Net wt. (g) *<input name="urdItemNetWeight" type="number" step="0.001" min="0.001" required data-urd-item-net placeholder="0.000"></label>
+          <label>Rate / gram (₹) *<input name="urdItemRatePerGram" type="number" step="0.01" min="0.01" required data-urd-item-rate data-rate-22="<%= rateInfo.rate ? Number(rateInfo.rate.gold22k) : 0 %>" data-rate-24="<%= rateInfo.rate ? Number(rateInfo.rate.gold24k) : 0 %>" data-rate-silver="<%= rateInfo.rate ? Number(rateInfo.rate.silver) : 0 %>" placeholder="0.00"></label>
+          <label>Valuation (₹) *<input name="urdItemTotalAmount" type="number" step="0.01" min="0.01" required readonly data-urd-item-amount placeholder="0.00"></label>
+        </div>
+      </div>
+    </template>
+    <div class="urd-items-summary"><span>Total net weight <strong data-urd-total-weight>0.000 g</strong></span><span>Total valuation <strong data-urd-total>₹0.00</strong></span></div>
+    <input name="totalAmount" type="hidden" required data-urd-total-amount value="0.00">
+  </section>
   <section class="form-section"><h2>Valuation &amp; payout</h2><div class="form-grid four">
-    <div class="rate-readout accent"><span>Valuation amount</span><strong data-urd-total>₹0.00</strong><small>Net weight × rate</small></div>
-    <label>Valuation amount (₹) *<input name="totalAmount" type="number" step="0.01" min="0.01" required placeholder="0.00" data-urd-amount></label>
     <label>Amount paid to customer (₹) *<input name="paid" type="number" step="0.01" min="0" required placeholder="0.00" data-urd-paid></label>
     <label>Payout method<select name="paymentMethod" data-payment-method><option value="CASH">Cash</option><option value="UPI">UPI</option><option value="CARD">Card</option><option value="BANK_TRANSFER">Bank Transfer</option></select></label>
   </div></section>
-  <section class="form-section"><label>Description<textarea name="description" rows="2" placeholder="Item description — old bangles, broken chain, etc."></textarea></label><label>Notes<textarea name="notes" rows="2" placeholder="Customer ID proof, any deductions, etc."></textarea></label></section>
+  <section class="form-section"><label>Notes<textarea name="notes" rows="2" placeholder="Customer ID proof, deductions, or other notes"></textarea></label></section>
   <footer class="form-footer"><a class="button ghost" href="/urd-purchases">Cancel</a><button class="button" type="submit">Save URD purchase</button></footer>
 </form>
 <style>
@@ -74,22 +83,80 @@
   .urd-customer-section .cust-existing-box { background: #f3faf5; border: 1.5px solid #b7e4c7; border-radius: 9px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
   .urd-customer-section .cust-existing-info strong { color: #145a32; font-size: 13px; display: block; }
   .urd-customer-section .cust-existing-info span { color: #2e7d32; font-size: 11.5px; }
+  .urd-items-section .urd-section-heading { align-items: center; }
+  .urd-item-rows { display: grid; gap: 10px; }
+  .urd-item-row { border: 1px solid #e5ddcc; border-radius: 10px; padding: 12px 14px; background: #fffdf9; }
+  .urd-item-row-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; color: #4e3d29; font-size: 12px; }
+  .urd-item-row-head .icon-button { color: #a94438; }
+  .urd-item-grid { display: grid; grid-template-columns: minmax(190px, 1.8fr) repeat(3, minmax(110px, 1fr)); gap: 9px; align-items: end; }
+  .urd-item-grid label { display: flex; flex-direction: column; gap: 4px; color: #63584c; font-size: 10.5px; font-weight: 750; text-transform: uppercase; letter-spacing: .02em; }
+  .urd-item-grid input, .urd-item-grid select { width: 100%; box-sizing: border-box; padding: 8px 9px; border: 1.5px solid #ded5c5; border-radius: 8px; background: #fff; color: #1a1612; font-family: inherit; font-size: 12.5px; font-weight: 550; text-transform: none; }
+  .urd-item-grid input:focus, .urd-item-grid select:focus { outline: none; border-color: #c9a044; box-shadow: 0 0 0 2px rgba(201,160,68,.14); }
+  .urd-item-grid .urd-item-description { grid-column: span 2; }
+  .urd-item-grid input[readonly] { background: #f6f1e8; color: #4e3d29; font-weight: 700; }
+  .urd-items-summary { display: flex; justify-content: flex-end; gap: 24px; margin-top: 11px; padding: 10px 12px; border: 1px solid #ebd9c4; border-radius: 8px; background: #fff8eb; color: #63584c; font-size: 11.5px; }
+  .urd-items-summary strong { color: #8a5a10; font-size: 13px; margin-left: 4px; }
+  @media (max-width: 900px) { .urd-item-grid { grid-template-columns: repeat(2, minmax(130px, 1fr)); } .urd-item-grid .urd-item-description { grid-column: span 2; } }
+  @media (max-width: 560px) { .urd-item-grid { grid-template-columns: 1fr; } .urd-item-grid .urd-item-description { grid-column: auto; } .urd-items-summary { justify-content: space-between; gap: 8px; flex-wrap: wrap; } }
 </style>
 <script>
 (function() {
   const form = document.querySelector('[data-urd-form]'); if (!form) return;
-  const rateInput = form.querySelector('[data-urd-rate]'), netInput = form.querySelector('[data-urd-net]'), grossInput = form.querySelector('[data-urd-gross]'), amountInput = form.querySelector('[data-urd-amount]'), paidInput = form.querySelector('[data-urd-paid]'), totalDisplay = form.querySelector('[data-urd-total]'), metalSel = form.querySelector('[data-urd-metal]'), purityInput = form.querySelector('[data-urd-purity]');
+  const rowsHost = form.querySelector('[data-urd-item-rows]');
+  const template = form.querySelector('[data-urd-item-template]');
+  const addButton = form.querySelector('[data-urd-add-item]');
+  const totalDisplay = form.querySelector('[data-urd-total]');
+  const totalWeightDisplay = form.querySelector('[data-urd-total-weight]');
+  const totalInput = form.querySelector('[data-urd-total-amount]');
+  const paidInput = form.querySelector('[data-urd-paid]');
   let payoutEdited = false;
-  function recalc() { const total = (parseFloat(netInput.value) || 0) * (parseFloat(rateInput.value) || 0); amountInput.value = total.toFixed(2); if (!payoutEdited) paidInput.value = total.toFixed(2); totalDisplay.textContent = '₹' + total.toLocaleString('en-IN', { minimumFractionDigits: 2 }); }
-  function updateRate() {
-    const purity = String(purityInput?.value || '').trim().toUpperCase();
-    const rate = metalSel.value === 'SILVER' ? Number(rateInput.dataset.rateSilver)
-      : purity === '24K' ? Number(rateInput.dataset.rate24)
-        : Number(rateInput.dataset.rate22);
-    if (rate > 0) rateInput.value = rate.toFixed(2);
+  function money(value) { return '₹' + Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function number(value) { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : 0; }
+  function updateRowNumbers() {
+    [...rowsHost.querySelectorAll('[data-urd-item-row]')].forEach((row, index) => { row.querySelector('[data-urd-item-number]').textContent = String(index + 1); row.querySelector('[data-urd-remove-item]').disabled = rowsHost.children.length === 1; });
+  }
+  function recalc() {
+    let totalWeight = 0; let total = 0;
+    rowsHost.querySelectorAll('[data-urd-item-row]').forEach((row) => {
+      const net = number(row.querySelector('[data-urd-item-net]').value);
+      const rate = number(row.querySelector('[data-urd-item-rate]').value);
+      const lineTotal = Math.max(0, net * rate);
+      row.querySelector('[data-urd-item-amount]').value = lineTotal.toFixed(2);
+      totalWeight += net; total += lineTotal;
+    });
+    totalInput.value = total.toFixed(2);
+    totalWeightDisplay.textContent = `${totalWeight.toFixed(3)} g`;
+    totalDisplay.textContent = money(total);
+    if (!payoutEdited) paidInput.value = total.toFixed(2);
+  }
+  function updateRate(row) {
+    const metal = row.querySelector('[data-urd-item-metal]').value;
+    const purity = String(row.querySelector('[data-urd-item-purity]').value || '').trim().toUpperCase();
+    const rateInput = row.querySelector('[data-urd-item-rate]');
+    const rate = metal === 'SILVER' ? number(rateInput.dataset.rateSilver)
+      : metal === 'GOLD' && purity === '24K' ? number(rateInput.dataset.rate24)
+        : metal === 'GOLD' ? number(rateInput.dataset.rate22) : 0;
+    if (rate > 0 && (!rateInput.value || rateInput.dataset.auto === 'true')) { rateInput.value = rate.toFixed(2); rateInput.dataset.auto = 'true'; }
     recalc();
   }
-  grossInput.addEventListener('input', () => { netInput.value = grossInput.value; recalc(); }); netInput.addEventListener('input', recalc); rateInput.addEventListener('input', recalc); paidInput.addEventListener('input', () => { payoutEdited = true; }); purityInput?.addEventListener('input', updateRate); metalSel.addEventListener('change', updateRate); updateRate();
+  function bindRow(row) {
+    const rateInput = row.querySelector('[data-urd-item-rate]');
+    row.querySelector('[data-urd-item-gross]').addEventListener('input', () => {
+      const netInput = row.querySelector('[data-urd-item-net]');
+      if (!netInput.dataset.edited) netInput.value = row.querySelector('[data-urd-item-gross]').value;
+      recalc();
+    });
+    row.querySelector('[data-urd-item-net]').addEventListener('input', (event) => { event.target.dataset.edited = 'true'; recalc(); });
+    rateInput.addEventListener('input', (event) => { event.target.dataset.auto = 'false'; recalc(); });
+    row.querySelector('[data-urd-item-metal]').addEventListener('change', () => { rateInput.dataset.auto = 'true'; updateRate(row); });
+    row.querySelector('[data-urd-item-purity]').addEventListener('input', () => { if (rateInput.dataset.auto !== 'false') { rateInput.dataset.auto = 'true'; updateRate(row); } });
+    row.querySelector('[data-urd-remove-item]').addEventListener('click', () => { if (rowsHost.children.length > 1) { row.remove(); updateRowNumbers(); recalc(); } });
+    updateRate(row);
+  }
+  function addRow() { const row = template.content.firstElementChild.cloneNode(true); rowsHost.appendChild(row); bindRow(row); updateRowNumbers(); recalc(); row.querySelector('[data-urd-item-description]').focus(); }
+  addButton.addEventListener('click', addRow);
+  paidInput.addEventListener('input', () => { payoutEdited = true; });
+  addRow();
 
 })();
 </script>

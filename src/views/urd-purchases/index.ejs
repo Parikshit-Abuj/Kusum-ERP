@@ -37,7 +37,7 @@
         </tr>
       </thead>
       <tbody>
-        <% purchaseList.forEach(p => { const urdPhoneDigits = String(p.customer?.phone || '').replace(/\D/g, ''); const urdWaText = encodeURIComponent(`Namaste ${p.customer?.name || 'Customer'},\n\nYour old ${String(p.metal || '').toLowerCase()} purchase ${p.purchaseNumber} has been recorded. Please contact us if you need the receipt.`); %>
+        <% purchaseList.forEach(p => { const urdPhoneDigits = String(p.customer?.phone || '').replace(/\D/g, ''); const itemCount = Math.max(1, Array.isArray(p.items) ? p.items.length : 0); const itemMetal = itemCount > 1 ? 'MULTIPLE' : p.metal; const itemPurity = itemCount > 1 ? '—' : (p.purity || '—'); const urdWaText = encodeURIComponent(`Namaste ${p.customer?.name || 'Customer'},\n\nYour old jewellery purchase ${p.purchaseNumber} has been recorded. Please contact us if you need the receipt.`); %>
         <tr>
           <td><strong><%= p.purchaseNumber %></strong></td>
           <td><%= formatDateDisplay(p.purchaseDate) %></td>
@@ -45,9 +45,9 @@
             <a href="/customers/<%= p.customer.id %>"><%= p.customer.name %></a>
             <% if (p.customer.phone) { %><small><%= p.customer.phone %></small><% } %>
           </td>
-          <td><%= p.metal %></td>
-          <td><%= p.purity || '—' %></td>
-          <td class="right"><%= Number(p.netWeight).toFixed(3) %></td>
+          <td><%= itemMetal %><small><%= itemCount %> item<%= itemCount === 1 ? '' : 's' %></small></td>
+          <td><%= itemPurity %></td>
+          <td class="right"><%= Number(p.netWeight).toFixed(3) %><small>total net wt.</small></td>
           <td class="right"><%- money(p.ratePerGram) %></td>
           <td class="right"><strong><%- money(p.totalAmount) %></strong><% if (Number(p.saleOffset) > 0) { %><small>Settled: <%- money(p.saleOffset) %></small><% } %></td>
           <td class="right"><strong><%- money(p.paid) %></strong><small><%= p.paymentMethod.replace('_', ' ') %></small></td>

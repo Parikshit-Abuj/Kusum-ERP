@@ -24,6 +24,21 @@ function text(value, fallback = '—') {
   const clean = String(value ?? '').replace(/\s+/g, ' ').trim();
   return clean || fallback;
 }
+function purchaseItems(purchase) {
+  const saved = Array.isArray(purchase.items) && purchase.items.length ? purchase.items : null;
+  if (saved) return saved;
+  // Legacy URD rows stored one item directly on UrdPurchase. Keep those
+  // receipts printable after the multi-item migration.
+  return [{
+    description: purchase.description || 'Old jewellery purchase',
+    metal: purchase.metal,
+    purity: purchase.purity,
+    grossWeight: purchase.grossWeight,
+    netWeight: purchase.netWeight,
+    ratePerGram: purchase.ratePerGram,
+    totalAmount: purchase.totalAmount
+  }];
+}
 function line(doc, y, color = '#d6d0c9', width = 0.6) {
   doc.save().moveTo(page.left, y).lineTo(page.right, y).lineWidth(width).strokeColor(color).stroke().restore();
 }
@@ -42,11 +57,13 @@ function qrPayload(purchase) {
   const paid = Number(purchase.paid || 0);
   const total = Number(purchase.totalAmount || 0);
   const due = Math.max(0, total - Number(purchase.saleOffset || 0) - paid);
+  const items = purchaseItems(purchase);
   return [
     `${text(purchase.customer?.name, 'Customer')}`,
     `URD: ${text(purchase.purchaseNumber)}`,
     `Date: ${dateOnly(purchase.purchaseDate)}`,
     `Metal/Purity: ${text(purchase.metal)}${purchase.purity ? ` / ${text(purchase.purity)}` : ''}`,
+    `Items: ${items.length}`,
     `Net wt: ${weight(purchase.netWeight)}`,
     `Valuation: Rs. ${amount(total)}`,
     `Paid: Rs. ${amount(paid)}`,
@@ -58,11 +75,13 @@ function compactQrPayload(purchase) {
   const paid = Number(purchase.paid || 0);
   const total = Number(purchase.totalAmount || 0);
   const due = Math.max(0, total - Number(purchase.saleOffset || 0) - paid);
+  const items = purchaseItems(purchase);
   return [
     `URD:${text(purchase.purchaseNumber)}`,
     `C:${text(purchase.customer?.name, 'Customer')}`,
     `DATE:${dateOnly(purchase.purchaseDate)}`,
     `M:${text(purchase.metal)}${purchase.purity ? `/${text(purchase.purity)}` : ''}`,
+    `ITEMS:${items.length}`,
     `NW:${weight(purchase.netWeight)}`,
     `V:${amount(total)}`,
     `P:${amount(paid)}`,
@@ -119,32 +138,64 @@ function drawCustomer(doc, purchase, y) {
   drawRows(rightRows, split + 10, split + 72, page.right - split - 84);
   return top + height + 14;
 }
-function drawItem(doc, purchase, y) {
-  y = sectionHeading(doc, 'Old jewellery / bullion received', y);
-  const columns = [
-    ['DESCRIPTION', text(purchase.description, 'Old jewellery purchase'), 140, 'left'],
-    ['METAL', text(purchase.metal), 65, 'left'],
-    ['PURITY', text(purchase.purity), 50, 'center'],
-    ['GROSS WT.', weight(purchase.grossWeight), 66, 'right'],
-    ['NET WT.', weight(purchase.netWeight), 66, 'right'],
-    ['RATE / G', amount(purchase.ratePerGram), 62, 'right'],
-    ['VALUE', amount(purchase.totalAmount), 62, 'right']
-  ];
-  const top = y;
+function drawItemTableHeader(doc, y) {
   const headerHeight = 24;
-  const rowHeight = 32;
-  const height = headerHeight + rowHeight;
-  doc.rect(page.left, top, page.width, headerHeight).fill('#f2eee8');
-  box(doc, page.left, top, page.width, height);
+  const columns = [
+    ['DESCRIPTION', 140, 'left'], ['METAL', 65, 'left'], ['PURITY', 50, 'center'],
+    ['GROSS WT.', 66, 'right'], ['NET WT.', 66, 'right'], ['RATE / G', 62, 'right'], ['VALUE', 62, 'right']
+  ];
+  doc.rect(page.left, y, page.width, headerHeight).fill('#f2eee8');
+  box(doc, page.left, y, page.width, headerHeight);
   let x = page.left;
-  columns.forEach(([label, value, width, align], index) => {
-    if (index) vertical(doc, x, top, height);
-    doc.fillColor('#111').font('Helvetica-Bold').fontSize(7).text(label, x + 4, top + 8, { width: width - 8, align, ellipsis: true });
-    doc.font('Helvetica').fontSize(8.1).text(value, x + 4, top + headerHeight + 9, { width: width - 8, align, ellipsis: true });
+  columns.forEach(([label, width, align], index) => {
+    if (index) vertical(doc, x, y, headerHeight);
+    doc.fillColor('#111').font('Helvetica-Bold').fontSize(7).text(label, x + 4, y + 8, { width: width - 8, align, ellipsis: true });
     x += width;
   });
-  line(doc, top + headerHeight, '#111', 0.45);
-  return top + height + 18;
+  return y + headerHeight;
+}
+function drawUrdContinuationHeader(doc) {
+  doc.fillColor('#111').font('Helvetica-Bold').fontSize(12).text('URD PURCHASE RECEIPT · CONTINUED', page.left, 36, { width: page.width, ellipsis: true });
+  line(doc, 64, '#b88732', 0.8);
+}
+function drawUrdContinuationFooter(doc) {
+  const y = page.footerY + 28;
+  line(doc, y, '#ded5c8', 0.45);
+  doc.fillColor('#111').font('Helvetica').fontSize(8).text('Continued on the next page.', page.left, y + 12, { width: page.width, align: 'center' });
+}
+function drawItems(doc, purchase, y) {
+  y = sectionHeading(doc, 'Old jewellery / bullion received', y);
+  const items = purchaseItems(purchase);
+  const contentBottom = page.footerY - 32;
+  const rowHeight = 32;
+  let rowY = drawItemTableHeader(doc, y);
+  items.forEach((item, index) => {
+    if (rowY + rowHeight > contentBottom) {
+      drawUrdContinuationFooter(doc);
+      doc.addPage();
+      drawUrdContinuationHeader(doc);
+      rowY = drawItemTableHeader(doc, 84);
+    }
+    const columns = [
+      ['DESCRIPTION', text(item.description, 'Old jewellery item'), 140, 'left'],
+      ['METAL', text(item.metal), 65, 'left'],
+      ['PURITY', text(item.purity), 50, 'center'],
+      ['GROSS WT.', weight(item.grossWeight), 66, 'right'],
+      ['NET WT.', weight(item.netWeight), 66, 'right'],
+      ['RATE / G', amount(item.ratePerGram), 62, 'right'],
+      ['VALUE', amount(item.totalAmount), 62, 'right']
+    ];
+    if (index % 2 === 0) doc.rect(page.left, rowY, page.width, rowHeight).fill('#fcfaf6');
+    box(doc, page.left, rowY, page.width, rowHeight, 0.45);
+    let x = page.left;
+    columns.forEach(([label, value, width, align], index) => {
+      if (index) vertical(doc, x, rowY, rowHeight);
+      doc.fillColor('#111').font('Helvetica').fontSize(8.1).text(value, x + 4, rowY + 9, { width: width - 8, align, ellipsis: true });
+      x += width;
+    });
+    rowY += rowHeight;
+  });
+  return rowY + 18;
 }
 function drawTotals(doc, purchase, y) {
   y = sectionHeading(doc, 'Valuation and settlement', y);
@@ -153,7 +204,9 @@ function drawTotals(doc, purchase, y) {
   const rows = [['Valuation amount', `Rs. ${amount(total)}`], ...(offset > 0 ? [['Adjusted against sale', `Rs. ${amount(offset)}`]] : []), ['Paid to customer', `Rs. ${amount(paid)}`], ['Balance due', `Rs. ${amount(due)}`]];
   const top = y;
   const height = 112;
-  const split = 414;
+  // Leave enough width for Indian-formatted amounts (including the Rs.
+  // prefix) so large multi-item valuations do not wrap into two lines.
+  const split = 360;
   box(doc, page.left, top, page.width, height);
   vertical(doc, split, top, height);
   const leftRows = [
@@ -169,8 +222,8 @@ function drawTotals(doc, purchase, y) {
   rows.forEach(([label, value], index) => {
     const rowY = top + 8 + index * 22;
     const emphasis = index === rows.length - 1;
-    doc.fillColor('#111').font(emphasis ? 'Helvetica-Bold' : 'Helvetica').fontSize(emphasis ? 9.2 : 8.6).text(label, split + 10, rowY, { width: 110 });
-    doc.font(emphasis ? 'Helvetica-Bold' : 'Helvetica').fontSize(emphasis ? 9.2 : 8.6).text(value, page.right - 62, rowY, { width: 62, align: 'right' });
+    doc.fillColor('#111').font(emphasis ? 'Helvetica-Bold' : 'Helvetica').fontSize(emphasis ? 8.6 : 8.2).text(label, split + 10, rowY, { width: 95, ellipsis: true });
+    doc.font(emphasis ? 'Helvetica-Bold' : 'Helvetica').fontSize(emphasis ? 8.6 : 8.2).text(value, page.right - 95, rowY, { width: 85, align: 'right', ellipsis: true });
     if (emphasis) doc.save().moveTo(split, rowY - 4).lineTo(page.right, rowY - 4).lineWidth(0.45).strokeColor('#111').stroke().restore();
   });
   return top + height + 12;
@@ -203,6 +256,21 @@ async function writeUrdPurchaseInvoice(res, purchase, businessSettings = {}) {
   const doc = new PDFDocument({ size: 'A4', margin: 0, info: { Title: `URD Purchase Receipt ${purchase.purchaseNumber}` } });
   const filename = `${String(purchase.purchaseNumber || 'urd-purchase').replace(/[^A-Za-z0-9-]/g, '_')}.pdf`;
   res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `inline; filename="${filename}"`); doc.pipe(res);
-  drawHeader(doc, purchase, businessSettings); let y = drawCustomer(doc, purchase, 123); y = drawItem(doc, purchase, y); drawTotals(doc, purchase, y); drawFooter(doc, purchase, businessSettings, qr); doc.end();
+  drawHeader(doc, purchase, businessSettings);
+  let y = drawCustomer(doc, purchase, 123);
+  y = drawItems(doc, purchase, y);
+  // Keep valuation and settlement together on a page with the final
+  // acknowledgement footer. If the item list filled the first page, continue
+  // to a clean page before drawing totals.
+  const totalsHeight = 25 + 112 + 12;
+  if (y + totalsHeight > page.footerY - 32) {
+    drawUrdContinuationFooter(doc);
+    doc.addPage();
+    drawUrdContinuationHeader(doc);
+    y = 84;
+  }
+  drawTotals(doc, purchase, y);
+  drawFooter(doc, purchase, businessSettings, qr);
+  doc.end();
 }
 module.exports = { writeUrdPurchaseInvoice, qrPayload };

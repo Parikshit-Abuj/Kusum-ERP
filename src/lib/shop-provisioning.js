@@ -252,6 +252,7 @@ const REQUIRED_RUNTIME_SCHEMA = {
   CashbookEntry: ['id', 'entryDate', 'paymentMethod', 'customerId', 'saleId', 'urdPurchaseId', 'syncLedger'],
   CustomerLedger: ['id', 'customerId', 'saleId', 'cashbookEntryId', 'amount', 'entryDate'],
   UrdPurchase: ['id', 'purchaseNumber', 'customerId', 'saleId', 'saleOffset', 'paid', 'cancelledAt'],
+  UrdPurchaseItem: ['id', 'urdPurchaseId', 'metal', 'purity', 'grossWeight', 'netWeight', 'ratePerGram', 'totalAmount'],
   SyncRevision: ['id', 'revision']
 };
 

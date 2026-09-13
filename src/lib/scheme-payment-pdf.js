@@ -133,7 +133,7 @@ function vertical(doc, x, y, height, color = '#111', width = 0.45) {
   doc.save().moveTo(x, y).lineTo(x, y + height).lineWidth(width).strokeColor(color).stroke().restore();
 }
 
-function drawHeader(doc, settings, title, documentNo, date) {
+function drawHeader(doc, settings, title, documentNo, date, options = {}) {
   const shopName = text(settings.shopName, 'Kusum Jewellers');
   doc.fillColor('#111').font('Helvetica-Bold').fontSize(19).text(shopName, page.left, 42, { width: 330 });
   doc.fillColor('#111').font('Helvetica').fontSize(8.5);
@@ -142,7 +142,12 @@ function drawHeader(doc, settings, title, documentNo, date) {
   let contactY = 66;
   if (address) { doc.text(address, page.left, contactY, { width: 350 }); contactY += 12; }
   if (phones) { doc.text(phones, page.left, contactY, { width: 350, ellipsis: true }); contactY += 12; }
-  if (settings.gstin) doc.text(`GSTIN: ${settings.gstin}${settings.panNumber ? `  ·  PAN: ${settings.panNumber}` : ''}`, page.left, contactY, { width: 350, ellipsis: true });
+  if (settings.gstin) {
+    // Keep GSTIN/PAN on its own clearly separated line. The old fixed rule
+    // could sit too close to this line when all business details were filled.
+    doc.text(`GSTIN: ${settings.gstin}${settings.panNumber ? `  ·  PAN: ${settings.panNumber}` : ''}`, page.left, contactY, { width: 350, ellipsis: true });
+    contactY += 12;
+  }
   // The consolidated title is longer than the monthly title. Reduce only its
   // header size so it stays on one line and never collides with the receipt
   // number/date lines below it.
@@ -150,8 +155,9 @@ function drawHeader(doc, settings, title, documentNo, date) {
   const headerRight = page.right - 200;
   doc.fillColor('#111').font('Helvetica-Bold').fontSize(titleSize).text(title, headerRight, 44, { width: 200, align: 'right', ellipsis: true });
   doc.fillColor('#111').font('Helvetica').fontSize(8.5).text(`Receipt ${text(documentNo)}`, headerRight, 66, { width: 200, align: 'right' });
-  doc.text(`Payment date ${dateOnly(date)}`, headerRight, 79, { width: 200, align: 'right' });
-  drawLine(doc, 101, '#b88732', 1.1);
+  const showPaymentDate = options.showPaymentDate !== false;
+  if (showPaymentDate) doc.text(`Payment date ${dateOnly(date)}`, headerRight, 79, { width: 200, align: 'right' });
+  drawLine(doc, Math.max(showPaymentDate ? 104 : 91, contactY + 2), '#b88732', 1.1);
 }
 
 function drawCustomerAndPlan(doc, enrollment, y) {
@@ -205,32 +211,69 @@ function drawSignatureFooter(doc, settings, note, qr = null) {
   doc.fillColor('#111').font('Helvetica').fontSize(6.8).text(note, customerX + 10, y + 80, { width: customerWidth - 20, height: 10, align: 'center', ellipsis: true });
 }
 
-function drawPaymentParts(doc, parts, y) {
-  y = drawSectionHeading(doc, 'Payment received', y);
+function drawInstallmentPaymentTable(doc, enrollment, installment, parts, y) {
+  y = drawSectionHeading(doc, `Month ${installment.installmentNumber} installment payment`, y);
   const top = y;
-  const rowHeight = 24;
-  const headerHeight = 24;
-  const totalHeight = headerHeight + parts.length * rowHeight + 28;
-  const methodBoundary = page.right - 80;
-  const xPositions = [page.left, page.left + 130, methodBoundary, page.right];
-  doc.rect(page.left, top, page.width, headerHeight).fill('#f2eee8');
-  box(doc, page.left, top, page.width, totalHeight);
-  xPositions.slice(1, -1).forEach((x) => vertical(doc, x, top, totalHeight));
-  doc.fillColor('#111').font('Helvetica-Bold').fontSize(7).text('PAYMENT DATE', page.left + 10, top + 8, { width: 120 });
-  doc.text('PAYMENT METHOD', page.left + 140, top + 8, { width: methodBoundary - page.left - 150 });
-  doc.text('AMOUNT', methodBoundary + 10, top + 8, { width: 60, align: 'right' });
-  let rowY = top + 24;
+  const rowHeight = 28;
+  const metaHeight = 32;
+  const headerHeight = 26;
+  const totalRowHeight = 28;
+  const displayRows = Math.max(1, parts.length);
+  const totalHeight = metaHeight + headerHeight + displayRows * rowHeight + totalRowHeight;
+  // One table keeps the installment context, split payment entries, and the
+  // aggregate total together. A monthly receipt has no MONTH column (that
+  // belongs in the consolidated receipt); its installment and due date live
+  // in a compact context band above the payment columns.
+  const amountBoundary = page.right - 95;
+  const columns = [page.left, page.left + 155, amountBoundary, page.right];
+  const labels = ['PAYMENT DATE', 'PAYMENT METHOD', 'AMOUNT'];
+  doc.rect(page.left, top, page.width, metaHeight).fill('#f6f1e8');
+  doc.fillColor('#111').font('Helvetica-Bold').fontSize(8.5)
+    .text(`INSTALLMENT ${installment.installmentNumber} OF ${enrollment.schemePlan?.durationMonths || '—'}`, page.left + 10, top + 10, { width: 230, ellipsis: true });
+  doc.font('Helvetica-Bold').fontSize(8.5)
+    .text(`DUE DATE  ${dateOnly(installment.dueDate)}`, page.left + 240, top + 10, { width: page.width - 250, align: 'right', ellipsis: true });
+  const headerTop = top + metaHeight;
+  doc.rect(page.left, headerTop, page.width, headerHeight).fill('#f2eee8');
+  doc.fillColor('#111').font('Helvetica-Bold').fontSize(7);
+  labels.forEach((label, index) => {
+    const x = columns[index] + 9;
+    const width = columns[index + 1] - columns[index] - 18;
+    doc.text(label, x, headerTop + 9, { width, align: index === labels.length - 1 ? 'right' : 'left' });
+  });
+
+  let rowY = headerTop + headerHeight;
   parts.forEach((part, index) => {
     if (index % 2 === 0) doc.rect(page.left, rowY, page.width, rowHeight).fill('#fcfaf6');
-    doc.fillColor('#111').font('Helvetica').fontSize(8.5).text(dateOnly(part.paymentDate), page.left + 10, rowY + 8, { width: 110, ellipsis: true });
-    doc.text(methodLabel(part.paymentMethod), page.left + 140, rowY + 8, { width: methodBoundary - page.left - 150, ellipsis: true });
-    doc.font('Helvetica-Bold').text(money(part.amount), methodBoundary + 10, rowY + 8, { width: 60, align: 'right' });
-    drawLine(doc, rowY + rowHeight, '#111', 0.4);
+    doc.fillColor('#111').font('Helvetica').fontSize(8.2);
+    doc.text(dateOnly(part.paymentDate), columns[0] + 9, rowY + 9, { width: columns[1] - columns[0] - 18, ellipsis: true });
+    doc.text(methodLabel(part.paymentMethod), columns[1] + 9, rowY + 9, { width: columns[2] - columns[1] - 18, ellipsis: true });
+    doc.font('Helvetica-Bold').text(money(part.amount), columns[2] + 9, rowY + 9, { width: columns[3] - columns[2] - 18, align: 'right' });
     rowY += rowHeight;
   });
-  doc.fillColor('#111').font('Helvetica-Bold').fontSize(10).text('Total received', page.left + 10, rowY + 10);
-  doc.text(money(totalParts(parts)), page.right - 110, rowY + 12, { width: 100, align: 'right' });
-  return rowY + 42;
+  if (!parts.length) {
+    doc.fillColor('#111').font('Helvetica').fontSize(8.2);
+    doc.text('—', columns[0] + 9, rowY + 9, { width: columns[1] - columns[0] - 18 });
+    doc.text('No payment recorded', columns[1] + 9, rowY + 9, { width: columns[2] - columns[1] - 18, ellipsis: true });
+    doc.font('Helvetica-Bold').text(money(0), columns[2] + 9, rowY + 9, { width: columns[3] - columns[2] - 18, align: 'right' });
+    rowY += rowHeight;
+  }
+
+  doc.rect(page.left, rowY, page.width, totalRowHeight).fill('#f6f1e8');
+  doc.fillColor('#111').font('Helvetica-Bold').fontSize(8.5).text('TOTAL RECEIVED', columns[0] + 9, rowY + 9, { width: columns[2] - columns[0] - 18 });
+  doc.text(money(totalParts(parts)), columns[2] + 9, rowY + 9, { width: columns[3] - columns[2] - 18, align: 'right' });
+
+  // Paint all fills before drawing the grid so every separator remains
+  // continuous and visible in print and in PDF viewers.
+  box(doc, page.left, top, page.width, totalHeight);
+  // Context and total rows are merged; separators only run through the
+  // payment header and payment-part rows.
+  columns.slice(1, -1).forEach((x) => vertical(doc, x, headerTop, rowY - headerTop));
+  drawLine(doc, headerTop, '#111', 0.4);
+  for (let row = 0; row <= displayRows; row += 1) {
+    drawLine(doc, headerTop + headerHeight + row * rowHeight, '#111', 0.4);
+  }
+  drawLine(doc, rowY, '#111', 0.4);
+  return top + totalHeight + 18;
 }
 
 function writeResponse(res, doc, filename) {
@@ -252,22 +295,7 @@ async function writeSchemeInstallmentReceipt(res, enrollment, installment, setti
   writeResponse(res, doc, filename);
   drawHeader(doc, settings, 'SCHEME PAYMENT RECEIPT', enrollment.enrollmentNumber, paymentDate);
   let y = drawCustomerAndPlan(doc, enrollment, 123);
-  y = drawSectionHeading(doc, `Installment ${installment.installmentNumber} of ${enrollment.schemePlan?.durationMonths || '—'}`, y);
-  const detailHeight = 62;
-  const detailSplit1 = page.left + 168;
-  const detailSplit2 = page.left + 337;
-  doc.rect(page.left, y, page.width, detailHeight).fill('#f6f1e8');
-  box(doc, page.left, y, page.width, detailHeight);
-  vertical(doc, detailSplit1, y, detailHeight);
-  vertical(doc, detailSplit2, y, detailHeight);
-  doc.fillColor('#111').font('Helvetica-Bold').fontSize(7).text('DUE DATE', page.left + 12, y + 11);
-  doc.fillColor('#111').font('Helvetica-Bold').fontSize(11).text(dateOnly(installment.dueDate), page.left + 12, y + 27);
-  doc.fillColor('#111').font('Helvetica-Bold').fontSize(7).text('PAID ON', detailSplit1 + 12, y + 11);
-  doc.fillColor('#111').font('Helvetica-Bold').fontSize(11).text(dateOnly(paymentDate), detailSplit1 + 12, y + 27);
-  doc.fillColor('#111').font('Helvetica-Bold').fontSize(7).text('AMOUNT RECEIVED', detailSplit2 + 12, y + 11);
-  doc.fillColor('#111').font('Helvetica-Bold').fontSize(13).text(money(totalParts(parts)), detailSplit2 + 12, y + 26, { width: page.right - detailSplit2 - 24, align: 'right' });
-  y += 86;
-  y = drawPaymentParts(doc, parts, y);
+  y = drawInstallmentPaymentTable(doc, enrollment, installment, parts, y);
   if (installment.notes || enrollment.notes) {
     const narration = installment.notes || enrollment.notes;
     doc.fillColor('#111').font('Helvetica-Bold').fontSize(8.5).text('Narration:', page.left, y);
@@ -293,12 +321,21 @@ function drawTableHeader(doc, y) {
   return y + 24;
 }
 
-function drawContinuationHeader(doc, enrollment, settings = {}) {
-  doc.fillColor('#111').font('Helvetica-Bold').fontSize(12).text(text(settings.shopName, 'Kusum Jewellers'), page.left, 34, { width: 330, ellipsis: true });
-  const address = String(settings.shopAddress || '').trim();
-  if (address) doc.fillColor('#111').font('Helvetica').fontSize(8.5).text(address, page.left, 50, { width: 330, ellipsis: true });
-  doc.fillColor('#111').font('Helvetica').fontSize(8.5).text(`Consolidated payment receipt · ${text(enrollment.enrollmentNumber)}`, page.left, 64, { width: 400, ellipsis: true });
-  drawLine(doc, 76, '#b88732', 0.8);
+function drawContinuationHeader(doc) {
+  // Business identity and receipt number belong to page 1 only. Repeating
+  // them on continuation pages can collide with a wrapped address or the
+  // table header, especially when the consolidated receipt spans pages.
+  doc.fillColor('#111').font('Helvetica-Bold').fontSize(12).text('CONSOLIDATED SCHEME RECEIPT · CONTINUED', page.left, 36, { width: page.width, ellipsis: true });
+  drawLine(doc, 64, '#b88732', 0.8);
+}
+
+function drawContinuationFooter(doc) {
+  // Only the final page carries the QR and signature acknowledgements. A
+  // continuation page needs a lightweight note instead of an empty signature
+  // box that could be mistaken for the receipt's final acknowledgement.
+  const y = page.footerY + 28;
+  drawLine(doc, y, '#ded5c8', 0.45);
+  doc.fillColor('#111').font('Helvetica').fontSize(8).text('Continued on the next page.', page.left, y + 12, { width: page.width, align: 'center' });
 }
 
 async function writeSchemeConsolidatedReceipt(res, enrollment, settings = {}, options = {}) {
@@ -318,7 +355,7 @@ async function writeSchemeConsolidatedReceipt(res, enrollment, settings = {}, op
     `Consolidated scheme receipt ${text(enrollment.enrollmentNumber)}`
   );
   writeResponse(res, doc, filename);
-  drawHeader(doc, settings, 'CONSOLIDATED SCHEME RECEIPT', enrollment.enrollmentNumber, lastPaymentDate);
+  drawHeader(doc, settings, 'CONSOLIDATED SCHEME RECEIPT', enrollment.enrollmentNumber, lastPaymentDate, { showPaymentDate: false });
   let y = drawCustomerAndPlan(doc, enrollment, 123);
   y = drawSectionHeading(doc, 'Payment summary', y);
   const summaryHeight = 58;
@@ -342,10 +379,10 @@ async function writeSchemeConsolidatedReceipt(res, enrollment, settings = {}, op
     const rowHeight = 27;
     // Keep the fixed signature footer clear of the payment rows.
     if (y + rowHeight > contentBottom) {
-      drawSignatureFooter(doc, settings, 'Continued on the next page.');
+      drawContinuationFooter(doc);
       doc.addPage();
-      drawContinuationHeader(doc, enrollment, settings);
-      y = drawTableHeader(doc, 92);
+      drawContinuationHeader(doc);
+      y = drawTableHeader(doc, 84);
     }
     if (index % 2 === 0) doc.rect(page.left, y, page.width, rowHeight).fill('#fcfaf6');
     const amountBoundary = page.right - 75;
@@ -366,10 +403,10 @@ async function writeSchemeConsolidatedReceipt(res, enrollment, settings = {}, op
   const hasNarration = Boolean(consolidatedNarration);
   let summaryY = y;
   if (summaryY + (hasNarration ? 90 : 44) > contentBottom) {
-    drawSignatureFooter(doc, settings, 'Continued on the next page.');
+    drawContinuationFooter(doc);
     doc.addPage();
-    drawContinuationHeader(doc, enrollment, settings);
-    summaryY = 92;
+    drawContinuationHeader(doc);
+    summaryY = 84;
   }
   drawLine(doc, summaryY, '#ded5c8', 0.45);
   doc.fillColor('#111').font('Helvetica').fontSize(8).text(

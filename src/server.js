@@ -214,6 +214,46 @@ function saleRows(body) {
   return rows;
 }
 
+function urdRows(body) {
+  const descriptions = asArray(body.urdItemDescription);
+  const metals = asArray(body.urdItemMetal);
+  const purities = asArray(body.urdItemPurity);
+  const grossWeights = asArray(body.urdItemGrossWeight);
+  const netWeights = asArray(body.urdItemNetWeight);
+  const rates = asArray(body.urdItemRatePerGram);
+  const totals = asArray(body.urdItemTotalAmount);
+  const count = Math.max(descriptions.length, metals.length, purities.length, grossWeights.length, netWeights.length, rates.length, totals.length);
+
+  // Keep accepting the original one-item form while new forms submit arrays.
+  // This lets an older browser tab finish safely after the multi-item release.
+  if (!count && (body.description || body.metal || body.purity || body.grossWeight || body.netWeight || body.ratePerGram || body.totalAmount)) {
+    return [{
+      description: (String(body.description || '').trim().toUpperCase() || 'OLD JEWELLERY ITEM').slice(0, 255),
+      metal: ['GOLD', 'SILVER', 'PLATINUM', 'DIAMOND', 'OTHER'].includes(String(body.metal || '').toUpperCase()) ? String(body.metal).toUpperCase() : 'GOLD',
+      purity: String(body.purity || '').trim().toUpperCase() || null,
+      grossWeight: number(body.grossWeight),
+      netWeight: number(body.netWeight),
+      ratePerGram: roundedMoney(number(body.ratePerGram)),
+      totalAmount: roundedMoney(number(body.totalAmount))
+    }];
+  }
+
+  const rows = [];
+  for (let index = 0; index < count; index += 1) {
+    const metal = String(metals[index] || 'GOLD').trim().toUpperCase();
+    rows.push({
+      description: (String(descriptions[index] || '').trim().toUpperCase() || 'OLD JEWELLERY ITEM').slice(0, 255),
+      metal: ['GOLD', 'SILVER', 'PLATINUM', 'DIAMOND', 'OTHER'].includes(metal) ? metal : 'GOLD',
+      purity: String(purities[index] || '').trim().toUpperCase() || null,
+      grossWeight: number(grossWeights[index]),
+      netWeight: number(netWeights[index]),
+      ratePerGram: roundedMoney(number(rates[index])),
+      totalAmount: roundedMoney(number(totals[index]))
+    });
+  }
+  return rows;
+}
+
 async function getRateForDate(db, rateDate = dateInput()) {
   // Keep rate lookups on the same strict YYYY-MM-DD contract as every other
   // financial date. Without this normalization a crafted API value such as
@@ -2229,13 +2269,26 @@ app.post('/sales', async (req, res, next) => {
         data: { customerId, saleId: sale.id, type: 'SALE_CREDIT', amount: balance, entryDate: dateInput(saleDate), reference: sale.invoiceNumber, note: `Credit balance from ${sale.invoiceNumber}` }
       });
       if (includeUrdPurchase) {
+        const urdMetal = ['GOLD', 'SILVER', 'PLATINUM', 'DIAMOND', 'OTHER'].includes(String(req.body.urdMetal || '').trim().toUpperCase())
+          ? String(req.body.urdMetal).trim().toUpperCase()
+          : 'GOLD';
+        const urdPurity = req.body.urdPurity ? String(req.body.urdPurity).trim().toUpperCase() : null;
+        const urdDescription = req.body.urdDescription ? String(req.body.urdDescription).trim().toUpperCase() : 'URD PURCHASE SETTLED AGAINST SALE';
         const urdPurchase = await tx.urdPurchase.create({ data: {
           purchaseNumber: await nextDocumentNumber(tx, 'UR', saleDate, { financialYearStartMonth: businessSettings.financialYearStartMonth }), customerId, purchaseDate: saleDate,
-          metal: req.body.urdMetal || 'GOLD', purity: req.body.urdPurity ? String(req.body.urdPurity).trim().toUpperCase() : null,
+          metal: urdMetal, purity: urdPurity,
           grossWeight: number(req.body.urdGrossWeight), netWeight: number(req.body.urdNetWeight),
           ratePerGram: number(req.body.urdRatePerGram), totalAmount: urdAmount, saleOffset: settlement.saleAdjustment,
-          paid: settlement.netRefundable, paymentMethod: refundMethod || 'MIXED', description: req.body.urdDescription ? String(req.body.urdDescription).trim().toUpperCase() : 'URD PURCHASE SETTLED AGAINST SALE',
-          notes: `Settled against sale ${sale.invoiceNumber}`, saleId: sale.id
+          paid: settlement.netRefundable, paymentMethod: refundMethod || 'MIXED', description: urdDescription,
+          notes: `Settled against sale ${sale.invoiceNumber}`, saleId: sale.id,
+          // Sales-created URD settlements are single-item legacy-style rows;
+          // retain that item explicitly so every URD PDF uses the same detail
+          // source as standalone multi-item purchases.
+          items: { create: [{
+            description: urdDescription.slice(0, 255), metal: urdMetal, purity: urdPurity,
+            grossWeight: number(req.body.urdGrossWeight), netWeight: number(req.body.urdNetWeight),
+            ratePerGram: number(req.body.urdRatePerGram), totalAmount: urdAmount
+          }] }
         } });
         if (settlement.hasRefund) {
           await tx.cashbookEntry.create({ data: {
@@ -2623,13 +2676,18 @@ app.post('/sales/:id/edit', async (req, res, next) => {
         await tx.urdPurchase.delete({ where: { id: urdPurchase.id } });
         urdPurchase = null;
       } else if (includeUrdPurchase && urdPurchase) {
+        const urdMetal = ['GOLD', 'SILVER', 'PLATINUM', 'DIAMOND', 'OTHER'].includes(String(req.body.urdMetal || '').trim().toUpperCase())
+          ? String(req.body.urdMetal).trim().toUpperCase()
+          : 'GOLD';
+        const urdPurity = req.body.urdPurity ? String(req.body.urdPurity).trim().toUpperCase() : null;
+        const urdDescription = req.body.urdDescription ? String(req.body.urdDescription).trim().toUpperCase() : 'URD purchase settled against sale';
         urdPurchase = await tx.urdPurchase.update({
           where: { id: urdPurchase.id },
           data: {
             customerId: finalCustomerId,
             purchaseDate: saleDate,
-            metal: req.body.urdMetal || 'GOLD',
-            purity: req.body.urdPurity || null,
+            metal: urdMetal,
+            purity: urdPurity,
             grossWeight: number(req.body.urdGrossWeight),
             netWeight: number(req.body.urdNetWeight),
             ratePerGram: number(req.body.urdRatePerGram),
@@ -2637,18 +2695,28 @@ app.post('/sales/:id/edit', async (req, res, next) => {
             saleOffset: settlement.saleAdjustment,
             paid: settlement.netRefundable,
             paymentMethod: refundMethod || 'MIXED',
-            description: req.body.urdDescription ? String(req.body.urdDescription).trim().toUpperCase() : 'URD purchase settled against sale',
-            notes: `Settled against sale ${sale.invoiceNumber}`
+            description: urdDescription,
+            notes: `Settled against sale ${sale.invoiceNumber}`,
+            items: { deleteMany: {}, create: [{
+              description: urdDescription.slice(0, 255), metal: urdMetal, purity: urdPurity,
+              grossWeight: number(req.body.urdGrossWeight), netWeight: number(req.body.urdNetWeight),
+              ratePerGram: number(req.body.urdRatePerGram), totalAmount: urdAmount
+            }] }
           }
         });
       } else if (includeUrdPurchase) {
+        const urdMetal = ['GOLD', 'SILVER', 'PLATINUM', 'DIAMOND', 'OTHER'].includes(String(req.body.urdMetal || '').trim().toUpperCase())
+          ? String(req.body.urdMetal).trim().toUpperCase()
+          : 'GOLD';
+        const urdPurity = req.body.urdPurity ? String(req.body.urdPurity).trim().toUpperCase() : null;
+        const urdDescription = req.body.urdDescription ? String(req.body.urdDescription).trim().toUpperCase() : 'URD purchase settled against sale';
         urdPurchase = await tx.urdPurchase.create({
           data: {
             purchaseNumber: await nextDocumentNumber(tx, 'UR', saleDate, { financialYearStartMonth: businessSettings.financialYearStartMonth }),
             customerId: finalCustomerId,
             purchaseDate: saleDate,
-            metal: req.body.urdMetal || 'GOLD',
-            purity: req.body.urdPurity ? String(req.body.urdPurity).trim().toUpperCase() : null,
+            metal: urdMetal,
+            purity: urdPurity,
             grossWeight: number(req.body.urdGrossWeight),
             netWeight: number(req.body.urdNetWeight),
             ratePerGram: number(req.body.urdRatePerGram),
@@ -2656,9 +2724,14 @@ app.post('/sales/:id/edit', async (req, res, next) => {
             saleOffset: settlement.saleAdjustment,
             paid: settlement.netRefundable,
             paymentMethod: refundMethod || 'MIXED',
-            description: req.body.urdDescription ? String(req.body.urdDescription).trim().toUpperCase() : 'URD purchase settled against sale',
+            description: urdDescription,
             notes: `Settled against sale ${sale.invoiceNumber}`,
-            saleId: sale.id
+            saleId: sale.id,
+            items: { create: [{
+              description: urdDescription.slice(0, 255), metal: urdMetal, purity: urdPurity,
+              grossWeight: number(req.body.urdGrossWeight), netWeight: number(req.body.urdNetWeight),
+              ratePerGram: number(req.body.urdRatePerGram), totalAmount: urdAmount
+            }] }
           }
         });
       }
@@ -4183,7 +4256,9 @@ app.get('/urd-purchases', async (req, res, next) => {
     const pagination = paginationFor(req, totalItems, req.query.page, 100);
     const purchases = await prisma.urdPurchase.findMany({
       where,
-      include: { customer: true },
+      // Keep a compact item list available for the register so a multi-item
+      // URD receipt is identifiable without loading any payment history.
+      include: { customer: true, items: { orderBy: { id: 'asc' }, select: { id: true, description: true, metal: true, purity: true, netWeight: true } } },
       orderBy: { purchaseDate: 'desc' },
       skip: (pagination.page - 1) * pagination.pageSize,
       take: pagination.pageSize
@@ -4214,9 +4289,22 @@ app.post('/urd-purchases', async (req, res, next) => {
         return redirectWith(res, '/urd-purchases/new', 'error', 'Enter the customer name, or select an existing customer.');
       }
     }
-    const netWeight = number(req.body.netWeight);
-    const ratePerGram = number(req.body.ratePerGram);
-    const totalAmount = roundedMoney(number(req.body.totalAmount));
+    const itemRows = urdRows(req.body);
+    if (!itemRows.length) return redirectWith(res, '/urd-purchases/new', 'error', 'Enter at least one old-jewellery item.');
+    for (const item of itemRows) {
+      if (item.netWeight <= 0) return redirectWith(res, '/urd-purchases/new', 'error', 'Enter a net weight greater than zero for every URD item.');
+      if (item.ratePerGram <= 0) return redirectWith(res, '/urd-purchases/new', 'error', 'Enter a rate per gram greater than zero for every URD item.');
+      if (item.totalAmount <= 0) return redirectWith(res, '/urd-purchases/new', 'error', 'Enter a valuation amount greater than zero for every URD item.');
+    }
+    const grossWeight = Number(itemRows.reduce((sum, item) => sum + Math.max(0, item.grossWeight), 0).toFixed(3));
+    const netWeight = Number(itemRows.reduce((sum, item) => sum + item.netWeight, 0).toFixed(3));
+    const totalAmount = roundedMoney(itemRows.reduce((sum, item) => sum + item.totalAmount, 0));
+    const ratePerGram = roundedMoney(totalAmount / netWeight);
+    const itemMetals = new Set(itemRows.map((item) => item.metal));
+    const metal = itemMetals.size === 1 ? itemRows[0].metal : 'OTHER';
+    const itemPurities = new Set(itemRows.map((item) => item.purity).filter(Boolean));
+    const purity = itemPurities.size === 1 ? [...itemPurities][0] : null;
+    const description = itemRows.map((item) => item.description).filter(Boolean).join(' · ') || null;
     const paid = roundedMoney(Math.max(0, number(req.body.paid)));
     const paymentMethod = receiptPaymentMethod(req.body.paymentMethod);
     if (netWeight <= 0) return redirectWith(res, '/urd-purchases/new', 'error', 'Enter a net weight greater than zero.');
@@ -4231,9 +4319,18 @@ app.post('/urd-purchases', async (req, res, next) => {
           purchaseNumber: await nextDocumentNumber(tx, 'UR', purchaseDate, { financialYearStartMonth: businessSettings.financialYearStartMonth }),
           customerId,
           purchaseDate,
-          metal: req.body.metal || 'GOLD', purity: req.body.purity || null,
-          grossWeight: number(req.body.grossWeight), netWeight, ratePerGram,
-          totalAmount, paid, paymentMethod, description: req.body.description ? String(req.body.description).trim().toUpperCase() : null, notes: req.body.notes ? String(req.body.notes).trim().toUpperCase() : null
+          metal, purity, grossWeight, netWeight, ratePerGram,
+          totalAmount, paid, paymentMethod, description,
+          notes: req.body.notes ? String(req.body.notes).trim().toUpperCase() : null,
+          items: { create: itemRows.map((item) => ({
+            description: item.description,
+            metal: item.metal,
+            purity: item.purity,
+            grossWeight: item.grossWeight,
+            netWeight: item.netWeight,
+            ratePerGram: item.ratePerGram,
+            totalAmount: item.totalAmount
+          })) }
         }
       });
       if (paid > 0) {
@@ -4298,7 +4395,7 @@ app.get('/urd-purchases/:id/invoice.pdf', async (req, res, next) => {
     const [purchase, businessSettings] = await Promise.all([
       prisma.urdPurchase.findUnique({
         where: { id: Number(req.params.id), cancelledAt: null },
-        include: { customer: true, sale: true, cashbookEntries: { orderBy: { id: 'asc' }, take: 1 } }
+        include: { customer: true, sale: true, items: { orderBy: { id: 'asc' } }, cashbookEntries: { orderBy: { id: 'asc' }, take: 1 } }
       }),
       getBusinessSettings(prisma)
     ]);

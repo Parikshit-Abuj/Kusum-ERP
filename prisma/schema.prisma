@@ -441,10 +441,32 @@ model UrdPurchase {
   customer        Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
   sale            Sale?           @relation(fields: [saleId], references: [id], onDelete: SetNull)
   cashbookEntries CashbookEntry[]
+  items           UrdPurchaseItem[]
 
   @@index([purchaseDate])
   @@index([cancelledAt, purchaseDate])
   @@index([customerId])
+}
+
+// One URD purchase can contain any number of old-jewellery items. The parent
+// keeps aggregate totals for accounting and legacy records; these rows retain
+// each item's description, metal, purity, weight, rate, and valuation for the
+// register and printed receipt.
+model UrdPurchaseItem {
+  id             Int         @id @default(autoincrement())
+  urdPurchaseId  Int
+  description    String?     @db.VarChar(255)
+  metal          MetalType   @default(GOLD)
+  purity         String?     @db.VarChar(50)
+  grossWeight    Decimal     @default(0) @db.Decimal(12, 3)
+  netWeight      Decimal     @default(0) @db.Decimal(12, 3)
+  ratePerGram    Decimal     @default(0) @db.Decimal(12, 2)
+  totalAmount    Decimal     @default(0) @db.Decimal(12, 2)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  urdPurchase    UrdPurchase @relation(fields: [urdPurchaseId], references: [id], onDelete: Cascade)
+
+  @@index([urdPurchaseId])
 }
 
 model DocumentSequence {
