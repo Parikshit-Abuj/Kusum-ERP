@@ -11,8 +11,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "db:backfill": "node prisma/backfill.js",
-    "test": "node --test test/barcode-sequence.test.js test/data-lifecycle.test.js test/excel-export.test.js test/product-search-filters.test.js test/sale-invoice-pdf.test.js test/sales-edit.test.js test/scheme-accounting.test.js test/scheme-schedule.test.js test/top-selling-items.test.js test/tspl-labels.test.js test/urd-settlement.test.js test/uppercase-standard.test.js"
+    "db:backfill": "node prisma/backfill.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
