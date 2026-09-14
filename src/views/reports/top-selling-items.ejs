@@ -15,7 +15,7 @@
     <label>From<input type="date" name="from" value="<%= filters.from %>"></label>
     <label>To<input type="date" name="to" value="<%= filters.to %>"></label>
     <label>Metal<select name="metal"><option value="">Gold &amp; Silver</option><option value="GOLD" <%= filters.metal === 'GOLD' ? 'selected' : '' %>>Gold only</option><option value="SILVER" <%= filters.metal === 'SILVER' ? 'selected' : '' %>>Silver only</option></select></label>
-    <label>Item / purity<input name="item" value="<%= filters.item %>" placeholder="Ring, 22K…"></label>
+    <label>Item / purity<input name="item" data-item-autocomplete data-item-autocomplete-mode="search" value="<%= filters.item %>" placeholder="Ring, 22K…" autocomplete="off"></label>
     <label>Rank by<select name="sortBy"><% Object.entries(sortLabels).forEach(([value, label]) => { %><option value="<%= value %>" <%= filters.sortBy === value ? 'selected' : '' %>><%= label %></option><% }) %></select></label>
     <label>Order<select name="sortOrder"><option value="DESC" <%= filters.sortOrder === 'DESC' ? 'selected' : '' %>>Highest first</option><option value="ASC" <%= filters.sortOrder === 'ASC' ? 'selected' : '' %>>Lowest first</option></select></label>
     <div class="report-filter-actions"><button class="button small" type="submit">Apply filters</button><a class="button ghost small" href="/reports/top-selling-items">Reset</a></div>

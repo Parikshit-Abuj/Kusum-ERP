@@ -2,13 +2,10 @@ const { app, BrowserWindow, dialog, shell, session } = require('electron');
 const fs = require('fs');
 const http = require('http');
 const net = require('net');
-const os = require('os');
 const path = require('path');
+const { defaultShopDataDirectory } = require('./src/lib/app-paths');
 
-const shopDataDirectory = process.env.KUSUM_APP_DATA || path.join(
-  process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'),
-  'Kusum Jewelers ERP'
-);
+const shopDataDirectory = defaultShopDataDirectory();
 
 process.env.KUSUM_APP_DATA = shopDataDirectory;
 process.env.KUSUM_CONFIG_PATH = process.env.KUSUM_CONFIG_PATH || path.join(shopDataDirectory, '.env');
@@ -45,6 +42,14 @@ let localPort;
 // Do not prefix this partition with `persist:`. It exists only for this
 // Electron process and is discarded when the cashier closes the ERP.
 const cashierSessionPartition = 'kusum-erp-cashier-session';
+
+function applicationIconPath() {
+  // Windows expects an ICO for the packaged executable. Linux and macOS use
+  // the transparent PNG artwork instead; keeping the selection here avoids
+  // shipping a platform-specific path into the renderer or server.
+  const filename = process.platform === 'win32' ? 'kusum-app-icon.ico' : 'kusum-app-icon.png';
+  return path.join(__dirname, 'public', filename);
+}
 
 function isTrustedLocalUrl(value) {
   try {
@@ -125,9 +130,9 @@ async function openErpWindow() {
       minWidth: 1040,
       minHeight: 720,
       title: 'Kusum ERP',
-      // Use the Windows icon asset so the title bar/taskbar and packaged
-      // executable consistently show the Kusum Jewelers mark.
-      icon: path.join(__dirname, 'public', 'kusum-app-icon.ico'),
+      // Use the platform-native icon asset for the title bar/taskbar and
+      // packaged application.
+      icon: applicationIconPath(),
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,

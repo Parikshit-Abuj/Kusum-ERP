@@ -26,7 +26,7 @@
     </div>
 
     <form class="search-bar customer-search" method="get">
-      <input name="q" value="<%= qVal %>" placeholder="Search by name, mobile number or email" autofocus>
+      <input name="q" data-customer-autocomplete data-customer-autocomplete-mode="search" value="<%= qVal %>" placeholder="Search by name, mobile number or email" autocomplete="off" autofocus>
       <button class="button secondary" type="submit">Search</button>
       <% if (qVal) { %><a class="button ghost" href="/customers">Clear</a><% } %>
     </form>
@@ -85,7 +85,7 @@
       <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
         <div class="pos-field">
           <label>Full name *</label>
-          <input name="name" data-uppercase required placeholder="e.g. RAMESH SHARMA" autocomplete="off">
+          <input name="name" data-uppercase data-customer-autocomplete required placeholder="e.g. RAMESH SHARMA" autocomplete="off">
         </div>
         <div class="form-grid two compact-fields">
           <div class="pos-field">

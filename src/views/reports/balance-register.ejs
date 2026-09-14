@@ -7,10 +7,16 @@
   <form class="report-filter-form" method="get">
     <label>From<input type="date" name="from" value="<%= filters.from || '' %>"></label>
     <label>To<input type="date" name="to" value="<%= filters.to || '' %>"></label>
-    <label>Customer / mobile<input name="q" value="<%= filters.q || '' %>" placeholder="Name or mobile number"></label>
+    <label>Customer / mobile<input name="q" data-customer-autocomplete data-customer-autocomplete-mode="search" value="<%= filters.q || '' %>" placeholder="Name or mobile number" autocomplete="off"></label>
     <label>Show<select name="state"><option value="DUE" <%= filters.state === 'DUE' ? 'selected' : '' %>>Balance due only</option><option value="ALL" <%= filters.state === 'ALL' ? 'selected' : '' %>>All customers</option><option value="SETTLED" <%= filters.state === 'SETTLED' ? 'selected' : '' %>>Settled only</option></select></label>
     <div class="report-filter-actions"><button class="button small" type="submit">Apply filters</button><a class="button ghost small" href="/reports/balance-register">Reset</a></div>
   </form>
+</section>
+
+<section class="stats-grid report-register-summary" aria-label="Filtered balance totals">
+  <article class="stat-card accent-gold"><span class="stat-label">Accounts matched</span><strong><%= summary.customerCount.toLocaleString('en-IN') %></strong><p>Customers in this filter</p></article>
+  <article class="stat-card"><span class="stat-label">Outstanding due</span><strong><%= money(summary.totalDue) %></strong><p>Positive customer balances</p></article>
+  <article class="stat-card"><span class="stat-label">Net balance</span><strong><%= money(summary.totalBalance) %></strong><p>After credits and adjustments</p></article>
 </section>
 
 <section class="panel">

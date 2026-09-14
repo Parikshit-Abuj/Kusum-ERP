@@ -6,8 +6,8 @@
 <section class="panel report-filter-panel">
   <form class="report-filter-form" method="get">
     <label>From<input type="date" name="from" value="<%= filters.from %>"></label><label>To<input type="date" name="to" value="<%= filters.to %>"></label>
-    <label>Item / barcode<input name="item" value="<%= filters.item %>" placeholder="Ring, G 1…"></label>
-    <label>Customer / mobile<input name="customer" value="<%= filters.customer %>" placeholder="Name or mobile"></label>
+    <label>Item / barcode<input name="item" data-item-autocomplete data-item-autocomplete-mode="search" value="<%= filters.item %>" placeholder="Ring, G 1…" autocomplete="off"></label>
+    <label>Customer / mobile<input name="customer" data-customer-autocomplete data-customer-autocomplete-mode="search" value="<%= filters.customer %>" placeholder="Name or mobile" autocomplete="off"></label>
     <label>Invoice no.<input name="invoice" value="<%= filters.invoice %>" placeholder="INV…"></label>
     <label>Payment<select name="paymentMethod"><option value="">All payments</option><% ['CASH','UPI','CARD','BANK_TRANSFER','CREDIT','MIXED'].forEach((value) => { %><option value="<%= value %>" <%= filters.paymentMethod === value ? 'selected' : '' %>><%= value.replace('_', ' ') %></option><% }) %></select></label>
     <label>Records<select name="recordState"><option value="ACTIVE" <%= filters.recordState !== 'CANCELLED' ? 'selected' : '' %>>Active invoices</option><option value="CANCELLED" <%= filters.recordState === 'CANCELLED' ? 'selected' : '' %>>Cancelled invoices</option></select></label>

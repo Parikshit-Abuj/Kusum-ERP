@@ -7,7 +7,7 @@
   <form class="report-filter-form" method="get">
     <label>From<input type="date" name="from" value="<%= filters.from || '' %>"></label>
     <label>To<input type="date" name="to" value="<%= filters.to || '' %>"></label>
-    <label>Item name<input name="itemName" value="<%= filters.itemName || '' %>" placeholder="Ring, chain, payal…"></label>
+    <label>Item name<input name="itemName" data-item-autocomplete data-item-autocomplete-mode="search" value="<%= filters.itemName || '' %>" placeholder="Ring, chain, payal…" autocomplete="off"></label>
     <label>Weight (g)<input name="weight" type="number" min="0" step="0.001" value="<%= filters.weight || '' %>" placeholder="18.250"></label>
     <label>Barcode<input name="barcode" value="<%= filters.barcode || '' %>" placeholder="G 1 or S A"></label>
     <label>Metal<select name="metal"><option value="">All metals</option><% ['GOLD','SILVER','PLATINUM','DIAMOND','OTHER'].forEach((value) => { %><option value="<%= value %>" <%= filters.metal === value ? 'selected' : '' %>><%= value %></option><% }) %></select></label>
@@ -15,6 +15,12 @@
     <label>Location / tray<input name="location" value="<%= filters.location || '' %>" placeholder="Tray 1…"></label>
     <div class="report-filter-actions"><button class="button small" type="submit">Apply filters</button><a class="button ghost small" href="/reports/stock">Reset</a></div>
   </form>
+</section>
+
+<section class="stats-grid report-register-summary" aria-label="Filtered stock totals">
+  <article class="stat-card accent-gold"><span class="stat-label">Total pieces</span><strong><%= summary.pieces.toLocaleString('en-IN') %></strong><p>Matching available stock</p></article>
+  <article class="stat-card"><span class="stat-label">Gross weight</span><strong><%= grams(summary.grossWeight) %></strong><p>Across the filtered items</p></article>
+  <article class="stat-card"><span class="stat-label">Net weight</span><strong><%= grams(summary.netWeight) %></strong><p>After stone weight</p></article>
 </section>
 
 <section class="panel">

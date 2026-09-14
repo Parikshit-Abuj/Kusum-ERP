@@ -16,6 +16,8 @@
 </header>
 <form id="label-test-form" method="post" action="/labels/test-print"></form>
 <%
+  const isWindowsPrinter = typeof printerPlatform !== 'undefined' ? printerPlatform === 'windows' : true;
+  const nativePrinterMode = isWindowsPrinter ? 'WINDOWS' : 'CUPS';
   const inventoryFilters = typeof filters !== 'undefined' && filters ? filters : { itemName: '', weight: '', barcode: '' };
   const hasInventoryFilters = Boolean(inventoryFilters.itemName || inventoryFilters.weight || inventoryFilters.barcode);
   const printerCheckParams = new URLSearchParams();
@@ -26,22 +28,21 @@
 %>
 <section class="panel register-panel">
   <form class="search-bar inventory-filter-form" method="get">
-    <label>Item name<input name="itemName" value="<%= inventoryFilters.itemName %>" placeholder="Ring, chain, payal…"></label>
+    <label>Item name<input name="itemName" data-item-autocomplete data-item-autocomplete-mode="search" value="<%= inventoryFilters.itemName %>" placeholder="Ring, chain, payal…" autocomplete="off"></label>
     <label>Weight (g)<input name="weight" type="number" min="0" step="0.001" value="<%= inventoryFilters.weight %>" placeholder="18.250"></label>
     <label>Barcode<input name="barcode" value="<%= inventoryFilters.barcode %>" placeholder="G 1 or G A"></label>
     <button class="button secondary" type="submit">Search</button>
     <% if (hasInventoryFilters) { %><a class="button ghost" href="/inventory">Clear</a><% } %>
   </form>
   <div data-inventory-live-content>
-  <% if (products.length) { %><form id="label-print-form" class="label-batch-toolbar" method="post" action="/labels/print"><div><strong data-label-count>0 selected</strong><% if (typeof printerStatus !== 'undefined' && printerStatus) { %><div class="printer-status <%= printerStatus.available === true ? 'is-ready' : (printerStatus.available === false ? '!' : '•') %>"><span><%= printerStatus.available === true ? '●' : (printerStatus.available === false ? '!' : '•') %></span><%= printerStatus.message %><a href="/inventory?<%= printerCheckParams.toString() %>">Check printer</a></div><% } %></div><label class="printer-name"><%= (typeof printerTransport !== 'undefined' && printerTransport?.mode === 'TCP') ? 'Direct TCP printer' : 'Windows printer queue' %><input name="printerName" readonly value="<%= typeof printerName !== 'undefined' ? printerName : '' %>"></label><button class="button small" type="submit" data-label-print-button disabled>Send to TSC TTP-244 Pro</button></form>
-  <div class="table-wrap inventory-list-view"><table class="inventory-table"><thead><tr><th class="label-select"><input type="checkbox" data-label-select-all title="Select all visible items"></th><th>Barcode / item</th><th>Metal / purity</th><th>Weight</th><th>Stock</th><th>Making</th><th>Location</th><th></th></tr></thead><tbody>
+  <% if (products.length) { %><form id="label-print-form" class="label-batch-toolbar" method="post" action="/labels/print"><div><strong data-label-count>0 selected</strong><% if (typeof printerStatus !== 'undefined' && printerStatus) { %><div class="printer-status <%= printerStatus.available === true ? 'is-ready' : (printerStatus.available === false ? '!' : '•') %>"><span><%= printerStatus.available === true ? '●' : (printerStatus.available === false ? '!' : '•') %></span><%= printerStatus.message %><a href="/inventory?<%= printerCheckParams.toString() %>">Check printer</a></div><% } %></div><label class="printer-name"><%= (typeof printerTransport !== 'undefined' && printerTransport?.mode === 'TCP') ? 'Direct TCP printer' : (isWindowsPrinter ? 'Windows printer queue' : 'CUPS printer queue') %><input name="printerName" readonly value="<%= typeof printerName !== 'undefined' ? printerName : '' %>"></label><button class="button small" type="submit" data-label-print-button disabled>Send to TSC TTP-244 Pro</button></form>
+  <div class="table-wrap inventory-list-view"><table class="inventory-table"><thead><tr><th class="label-select"><input type="checkbox" data-label-select-all title="Select all visible items"></th><th>Barcode / item</th><th>Metal / purity</th><th>Weight</th><th>Making type</th><th>Location</th><th></th></tr></thead><tbody>
   <% products.forEach((product) => { %><tr>
     <td class="label-select"><input form="label-print-form" type="checkbox" name="productId" value="<%= product.id %>" data-label-select <%= product.barcode ? '' : 'disabled' %>></td>
     <td><strong class="barcode-label"><%= product.barcode || 'No barcode' %></strong><small><%= product.name %> · <%= product.category %></small></td>
     <td><span class="metal-dot <%= product.metal.toLowerCase() %>"></span><%= product.metal %><small><%= product.purity || '—' %></small></td>
     <td><strong><%= grams(product.netWeight) %></strong><small>Gross: <%= grams(product.grossWeight) %></small></td>
-    <td><span class="pill <%= product.quantity <= product.reorderLevel ? 'warning' : 'success' %>"><%= product.quantity %> piece<%= product.quantity === 1 ? '' : 's' %></span><small>Reorder at <%= product.reorderLevel %></small></td>
-    <td><span class="pill neutral"><%= product.makingChargeType.replace('_', ' ') %></span><small><%= product.makingChargeType === 'PERCENTAGE' ? `${product.makingChargeValue}%` : money(product.makingChargeValue) %></small></td>
+    <td><span class="pill neutral"><%= product.makingChargeType.replace('_', ' ') %></span></td>
     <td><%= product.location || '—' %></td>
     <td class="actions">
       <a class="icon-button" title="Edit item" href="/inventory/<%= product.id %>/edit">✎</a>
@@ -70,11 +71,11 @@
       <input type="hidden" name="returnTo" value="/inventory">
       <div class="modal-body printer-setup-modal-body">
         <div class="segmented-control" role="radiogroup" aria-label="Barcode printer transport">
-          <label><input type="radio" name="printerMode" value="WINDOWS" <%= printerTransport.mode === 'TCP' ? '' : 'checked' %>> Windows printer / USB</label>
+          <label><input type="radio" name="printerMode" value="<%= nativePrinterMode %>" <%= printerTransport.mode === 'TCP' ? '' : 'checked' %>> <%= isWindowsPrinter ? 'Windows printer / USB' : 'CUPS printer / USB' %></label>
           <label><input type="radio" name="printerMode" value="TCP" <%= printerTransport.mode === 'TCP' ? 'checked' : '' %>> Direct TCP / Ethernet</label>
         </div>
         <div data-windows-printer-fields>
-          <label>Installed Windows printer name<input name="printerName" value="<%= printerTransport.name %>" autocomplete="off" placeholder="Example: TSC TTP-244 Pro"></label>
+          <label><%= isWindowsPrinter ? 'Installed Windows printer name' : 'Installed CUPS printer queue' %><input name="printerName" value="<%= printerTransport.name %>" autocomplete="off" placeholder="<%= isWindowsPrinter ? 'Example: TSC TTP-244 Pro' : 'Example: TSC_TTP_244_Pro' %>"></label>
         </div>
         <div class="form-grid two compact-fields" data-tcp-printer-fields hidden>
           <label>Printer / print-server IP<input name="printerHost" value="<%= printerTransport.host %>" autocomplete="off" placeholder="Example: 192.168.1.60"></label>

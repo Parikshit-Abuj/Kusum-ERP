@@ -11,7 +11,7 @@
 
 <section class="panel register-panel">
   <form class="search-bar" method="get" action="/pledges">
-    <input name="q" value="<%= q || '' %>" placeholder="Search customer, pledge no., item or purity">
+    <input name="q" data-customer-autocomplete data-customer-autocomplete-mode="search" value="<%= q || '' %>" placeholder="Search customer, pledge no., item or purity" autocomplete="off">
     <select name="metal"><option value="">Gold & silver</option><option value="GOLD" <%= metal === 'GOLD' ? 'selected' : '' %>>Gold</option><option value="SILVER" <%= metal === 'SILVER' ? 'selected' : '' %>>Silver</option></select>
     <select name="status"><option value="ACTIVE" <%= status === 'ACTIVE' ? 'selected' : '' %>>Active</option><option value="RELEASED" <%= status === 'RELEASED' ? 'selected' : '' %>>Released</option><option value="CANCELLED" <%= status === 'CANCELLED' ? 'selected' : '' %>>Cancelled</option><option value="ALL" <%= status === 'ALL' ? 'selected' : '' %>>All records</option></select>
     <button class="button secondary" type="submit">Search</button><% if (q || metal || status !== 'ACTIVE') { %><a class="button ghost" href="/pledges">Clear</a><% } %>

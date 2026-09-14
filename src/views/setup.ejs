@@ -1,3 +1,4 @@
+<% const isWindowsPrinter = typeof printerPlatform !== 'undefined' ? printerPlatform === 'windows' : true; const nativePrinterMode = isWindowsPrinter ? 'WINDOWS' : 'CUPS'; %>
 <!doctype html>
 <html lang="en">
 <head>
@@ -421,7 +422,7 @@
           </div>
 
           <div class="field-helper" data-server-hint>
-            Keep MySQL on this PC. Ensure port <code>3306</code> is allowed through Windows Firewall for local subnet PCs.
+            Keep MySQL on this PC. Ensure port <code>3306</code> is allowed through the local firewall for local subnet PCs.
           </div>
           <div class="field-helper" data-client-hint hidden>
             Enter the Main PC’s LAN IP address (e.g. <code>192.168.1.15</code>). Do not enter <code>localhost</code> on client machines.
@@ -481,8 +482,8 @@
 
           <div class="setup-segmented-control" role="radiogroup" aria-label="Barcode printer connection">
             <label>
-              <input type="radio" name="printerMode" value="WINDOWS" <%= defaults.printerMode === 'TCP' ? '' : 'checked' %>>
-              Windows / USB Printer
+              <input type="radio" name="printerMode" value="<%= nativePrinterMode %>" <%= defaults.printerMode === 'TCP' ? '' : 'checked' %>>
+              <%= isWindowsPrinter ? 'Windows / USB Printer' : 'CUPS / USB Printer' %>
             </label>
             <label>
               <input type="radio" name="printerMode" value="TCP" <%= defaults.printerMode === 'TCP' ? 'checked' : '' %>>
@@ -492,8 +493,8 @@
 
           <div data-windows-printer-fields>
             <div class="setup-field">
-              <label>Installed Windows TSC Printer Name</label>
-              <input name="printerName" type="text" value="<%= defaults.printerName %>" autocomplete="off" placeholder="e.g. TSC TTP-244 Pro" class="preserve-case" data-no-uppercase>
+              <label><%= isWindowsPrinter ? 'Installed Windows TSC Printer Name' : 'Installed CUPS Printer Queue' %></label>
+              <input name="printerName" type="text" value="<%= defaults.printerName %>" autocomplete="off" placeholder="<%= isWindowsPrinter ? 'e.g. TSC TTP-244 Pro' : 'e.g. TSC_TTP_244_Pro' %>" class="preserve-case" data-no-uppercase>
             </div>
           </div>
 
@@ -509,7 +510,7 @@
           </div>
 
           <div class="field-helper">
-            USB printers like TSC TTP-244 Pro should use Windows Printer queue. Network print servers use RAW port 9100.
+            <% if (isWindowsPrinter) { %>USB printers like TSC TTP-244 Pro should use the Windows printer queue. Network print servers use RAW port 9100.<% } else { %>USB printers should be installed as a CUPS queue. Network print servers use RAW port 9100.<% } %>
           </div>
         </div>
 

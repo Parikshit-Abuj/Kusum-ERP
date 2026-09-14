@@ -56,6 +56,14 @@ function input(value) {
   return String(value || '').trim();
 }
 
+function defaultPrinterMode() {
+  return process.platform === 'win32' ? 'WINDOWS' : 'CUPS';
+}
+
+function defaultPrinterName() {
+  return process.platform === 'win32' ? 'TSC TTP-244 Pro' : '';
+}
+
 function port(value, label = 'MySQL') {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) throw new Error(`Enter a valid ${label} port (1 to 65535).`);
@@ -224,9 +232,14 @@ async function migrationStatementAlreadyApplied(connection, statement, error) {
 }
 
 function printerFormValues(form) {
-  const printerMode = String(form.printerMode || 'WINDOWS').trim().toUpperCase() === 'TCP' ? 'TCP' : 'WINDOWS';
-  const printerName = input(form.printerName || 'TSC TTP-244 Pro');
-  if (printerMode === 'WINDOWS' && !printerName) throw new Error('Enter the installed Windows TSC printer name.');
+  const requestedMode = String(form.printerMode || '').trim().toUpperCase();
+  const printerMode = requestedMode === 'TCP'
+    ? 'TCP'
+    : (requestedMode === 'CUPS' && process.platform !== 'win32' ? 'CUPS' : defaultPrinterMode());
+  const printerName = input(form.printerName || defaultPrinterName());
+  if ((printerMode === 'WINDOWS' || printerMode === 'CUPS') && !printerName) {
+    throw new Error(printerMode === 'CUPS' ? 'Enter the installed CUPS printer queue name.' : 'Enter the installed Windows TSC printer name.');
+  }
   const printerHost = input(form.printerHost || '');
   const printerPort = port(form.printerPort || 9100, 'direct TCP printer');
   if (printerMode === 'TCP') mysqlHost(printerHost);
@@ -555,8 +568,8 @@ async function enableNetworkSharing({ databaseUrl, configPath, currentEnv, form 
         ? { AUTH_PASSWORD_HASH: currentEnv.AUTH_PASSWORD_HASH }
         : { AUTH_PASSWORD: currentEnv.AUTH_PASSWORD }),
       SESSION_SECRET: currentEnv.SESSION_SECRET || crypto.randomBytes(48).toString('base64url'),
-      TSC_PRINTER_MODE: currentEnv.TSC_PRINTER_MODE || 'WINDOWS',
-      TSC_PRINTER_NAME: currentEnv.TSC_PRINTER_NAME || 'TSC TTP-244 Pro',
+      TSC_PRINTER_MODE: currentEnv.TSC_PRINTER_MODE || defaultPrinterMode(),
+      TSC_PRINTER_NAME: currentEnv.TSC_PRINTER_NAME || defaultPrinterName(),
       TSC_PRINTER_HOST: currentEnv.TSC_PRINTER_HOST || '',
       TSC_PRINTER_PORT: currentEnv.TSC_PRINTER_PORT || 9100,
       KUSUM_DEPLOYMENT_MODE: currentEnv.KUSUM_DEPLOYMENT_MODE || 'SERVER'
@@ -599,8 +612,8 @@ function updateLoginConfiguration({ configPath, currentEnv, username, password }
     AUTH_USERNAME: appUsername,
     AUTH_PASSWORD_HASH: hashPassword(appPassword),
     SESSION_SECRET: currentEnv.SESSION_SECRET || crypto.randomBytes(48).toString('base64url'),
-    TSC_PRINTER_MODE: currentEnv.TSC_PRINTER_MODE || 'WINDOWS',
-    TSC_PRINTER_NAME: currentEnv.TSC_PRINTER_NAME || 'TSC TTP-244 Pro',
+    TSC_PRINTER_MODE: currentEnv.TSC_PRINTER_MODE || defaultPrinterMode(),
+    TSC_PRINTER_NAME: currentEnv.TSC_PRINTER_NAME || defaultPrinterName(),
     TSC_PRINTER_HOST: currentEnv.TSC_PRINTER_HOST || '',
     TSC_PRINTER_PORT: currentEnv.TSC_PRINTER_PORT || 9100,
     KUSUM_DEPLOYMENT_MODE: currentEnv.KUSUM_DEPLOYMENT_MODE || 'SERVER'

@@ -161,6 +161,44 @@ function sendTsplToWindowsPrinter(printerName, tspl) {
   });
 }
 
+function sendTsplToCupsPrinter(printerName, tspl) {
+  const queue = String(printerName || '').trim();
+  if (!queue) throw new Error('Select an installed CUPS printer queue before sending labels.');
+  const bytes = Buffer.from(tspl, 'latin1');
+  return new Promise((resolve, reject) => {
+    const child = spawn('lp', ['-d', queue, '-o', 'raw'], {
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+    const finish = (error, result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      if (error) reject(error);
+      else resolve(result);
+    };
+    const timeout = setTimeout(() => {
+      child.kill();
+      finish(new Error(`Timed out while sending native TSPL to CUPS queue ${queue}. Check that CUPS is running and the printer is online.`));
+    }, 15000);
+    child.stdout.on('data', (chunk) => { stdout += String(chunk); });
+    child.stderr.on('data', (chunk) => { stderr += String(chunk); });
+    child.on('error', (error) => {
+      const message = error.code === 'ENOENT'
+        ? 'CUPS is not installed. Install the CUPS client tools before printing labels.'
+        : error.message || String(error);
+      finish(new Error(message));
+    });
+    child.on('close', (code) => {
+      if (code === 0) return finish(null, stdout.trim() || `Sent ${bytes.length} native TSPL bytes to CUPS queue ${queue}.`);
+      finish(new Error(stderr.trim() || stdout.trim() || `CUPS could not print to queue ${queue} (exit code ${code}).`));
+    });
+    child.stdin.end(bytes);
+  });
+}
+
 function tcpPort(value) {
   const parsed = Number(value || 9100);
   if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) {
@@ -237,9 +275,11 @@ function sendTsplOverTcp(host, portNumber, tspl) {
 
 function sendTsplToPrinter(printer, tspl) {
   const config = typeof printer === 'string' ? { mode: 'WINDOWS', name: printer } : (printer || {});
-  if (String(config.mode || 'WINDOWS').toUpperCase() === 'TCP') {
+  const mode = String(config.mode || (process.platform === 'win32' ? 'WINDOWS' : 'CUPS')).toUpperCase();
+  if (mode === 'TCP') {
     return sendTsplOverTcp(config.host, config.port, tspl);
   }
+  if (mode === 'CUPS') return sendTsplToCupsPrinter(config.name, tspl);
   const printerName = String(config.name || '').trim();
   if (!printerName) throw new Error('Select an installed Windows printer before sending labels.');
   return sendTsplToWindowsPrinter(printerName, tspl);
@@ -250,5 +290,6 @@ module.exports = {
   buildTsplJob,
   checkTcpPrinter,
   sendTsplToPrinter,
+  sendTsplToCupsPrinter,
   sendTsplOverTcp
 };

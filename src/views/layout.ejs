@@ -38,7 +38,7 @@
           { name: 'Manage', links: [
             ['/rates', 'Daily rates', 'trend'], ['/item-names', 'Item Names', 'grid'],
             ['/reports', 'Reports', 'chart'], ['/data-management', 'Export & archive', 'download'],
-            ['/network-setup', 'Network PCs', 'network'], ['/business-settings', 'Business Settings', 'grid']
+            ['/business-settings', 'Business Settings', 'grid']
           ] }
         ]; const activeSection = navigationGroups.flatMap(group => group.links).find(([url]) => url === '/' ? currentPath === '/' : currentPath.startsWith(url)); %>
         <nav aria-label="Main navigation">
@@ -66,7 +66,13 @@
       </aside>
       <main class="main-content" id="main-content" tabindex="-1">
         <div class="workspace-toolbar" aria-label="Workspace tools">
-          <div class="workspace-breadcrumb"><span>Workspace</span><span aria-hidden="true">/</span><strong><%= activeSection ? activeSection[1] : title %></strong></div>
+          <div class="workspace-toolbar-start">
+            <button class="sidebar-toggle" id="sidebarToggle" type="button" data-sidebar-toggle aria-controls="appSidebar" aria-expanded="true" aria-label="Hide navigation" title="Hide navigation">
+              <span class="sidebar-toggle-glyph" aria-hidden="true">‹</span>
+              <span data-sidebar-toggle-label>Hide navigation</span>
+            </button>
+            <div class="workspace-breadcrumb"><span>Workspace</span><span aria-hidden="true">/</span><strong><%= activeSection ? activeSection[1] : title %></strong></div>
+          </div>
           <div class="workspace-tools">
           <button class="global-search-trigger" type="button" data-global-search-open aria-haspopup="dialog">
             <svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#search"></use></svg>
@@ -94,7 +100,7 @@
       </section>
     </div>
     <script src="/i18n.js"></script>
-    <script src="/app.js?v=20260910-invoice-review-2"></script>
+    <script src="/app.js?v=20260914-supplier-autocomplete-1"></script>
     <script src="/workspace.js"></script>
   </body>
 </html>

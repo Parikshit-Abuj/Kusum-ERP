@@ -502,6 +502,14 @@ document.querySelectorAll('.flash').forEach((el) => {
     clearCustomerSearchResults();
   }
 
+  // The same name picker is also available on the dedicated customer-name
+  // field. This keeps the direct entry field and the separate search field
+  // on one customer-selection path, so selecting a suggestion always carries
+  // the exact customer profile ID instead of creating a duplicate.
+  nameInput?.addEventListener('customer:suggestion', (event) => {
+    if (event.detail) selectSearchedCustomer(event.detail);
+  });
+
   function renderCustomerSearchResults(customers) {
     if (!customerSearchResults) return;
     customerSearchResults.replaceChildren();
@@ -680,7 +688,7 @@ document.querySelectorAll('.flash').forEach((el) => {
       clearTimeout(customerSearchTimer);
       if (customerSearchController) customerSearchController.abort();
       const query = customerSearch.value.trim();
-      if (query.length < 2) {
+      if (query.length < 1) {
         clearCustomerSearchResults();
         return;
       }
@@ -724,31 +732,632 @@ document.querySelectorAll('.flash').forEach((el) => {
   showNewCustomer('');
 })();
 
-/* ── Billing focus mode ────────────────────────────────────────
-   Keeps the same sale form and calculations, but removes surrounding ERP
-   chrome so the counter can work only with customer, items and payment. */
-(function initBillingFocusMode() {
-  const button = document.querySelector('[data-billing-focus-toggle]');
-  const billing = document.querySelector('.billing-wrapper');
-  if (!button || !billing) return;
+/* ═══════════════════════════════════════════════════════════════
+   4. CUSTOMER NAME AUTOCOMPLETE — shared name suggestions
+   ═══════════════════════════════════════════════════════════════ */
+(function initCustomerNameAutocomplete() {
+  const inputs = Array.from(document.querySelectorAll('[data-customer-autocomplete]'))
+    .filter((input) => !input.matches('[data-scheme-name], [data-bulk-name]'));
+  if (!inputs.length) return;
 
-  const apply = (enabled) => {
-    document.body.classList.toggle('billing-focus-mode', enabled);
-    button.setAttribute('aria-pressed', String(enabled));
-    button.textContent = enabled ? 'Exit focus mode' : 'Focus mode';
-    try { sessionStorage.setItem('kusum-erp-billing-focus', enabled ? '1' : '0'); } catch (_) {}
-  };
-  let saved = '0';
-  try { saved = sessionStorage.getItem('kusum-erp-billing-focus') || '0'; } catch (_) {}
-  apply(saved === '1');
-  button.addEventListener('click', () => apply(!document.body.classList.contains('billing-focus-mode')));
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && document.body.classList.contains('billing-focus-mode') && !document.querySelector('.modal-overlay[style*="flex"]')) apply(false);
+  inputs.forEach((input) => {
+    if (input.dataset.customerAutocompleteReady === '1') return;
+    input.dataset.customerAutocompleteReady = '1';
+
+    const host = input.closest('.pos-field, .customer-order-edit-fields label, .report-filter-form label, .search-bar label') || input.parentElement;
+    const results = document.createElement('div');
+    results.className = 'customer-autocomplete-results';
+    results.setAttribute('role', 'listbox');
+    results.hidden = true;
+    (host || input.parentElement || input).appendChild(results);
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-expanded', 'false');
+
+    let timer = null;
+    let controller = null;
+    let highlighted = -1;
+    let requestNumber = 0;
+    let selectedCustomerId = '';
+    const customerSelect = input.form?.querySelector('[data-customer-select]');
+
+    const hide = () => {
+      clearTimeout(timer);
+      results.replaceChildren();
+      results.hidden = true;
+      input.setAttribute('aria-expanded', 'false');
+      highlighted = -1;
+    };
+
+    const position = () => {
+      if (results.hidden) return;
+      const rect = input.getBoundingClientRect();
+      const height = Math.min(240, results.scrollHeight || 240);
+      const top = window.innerHeight - rect.bottom < height && rect.top > height
+        ? rect.top - height - 4
+        : rect.bottom + 4;
+      results.style.left = `${Math.max(4, rect.left)}px`;
+      results.style.top = `${Math.max(4, top)}px`;
+      results.style.width = `${rect.width}px`;
+    };
+
+    const select = (customer) => {
+      if (!customer?.id) return;
+      const name = String(customer.name || '').trim().toUpperCase();
+      const lookup = input.closest('[data-customer-lookup]');
+      const idInput = lookup?.querySelector('[data-customer-id]')
+        || input.form?.querySelector('[data-order-customer-id]');
+      const phoneInput = lookup?.querySelector('[data-customer-phone]')
+        || input.form?.querySelector('[name="customerPhone"]');
+
+      input.value = name;
+      selectedCustomerId = String(customer.id);
+      if (customerSelect) {
+        let option = Array.from(customerSelect.options).find((candidate) => candidate.value === selectedCustomerId);
+        if (!option) {
+          option = document.createElement('option');
+          option.value = selectedCustomerId;
+          option.textContent = `${customer.name || 'Customer'}${customer.phone ? ` · ${customer.phone}` : ''}`;
+          customerSelect.appendChild(option);
+        }
+        customerSelect.value = selectedCustomerId;
+        customerSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      if (lookup && input.matches('[data-customer-name]')) {
+        // Billing, pledge, URD and new-order forms already have a complete
+        // profile-selection workflow. Let that workflow reveal the saved
+        // profile and disable the new-customer fields consistently.
+        input.dispatchEvent(new CustomEvent('customer:suggestion', { detail: customer }));
+      } else {
+        if (idInput) idInput.value = String(customer.id);
+        if (phoneInput && customer.phone) {
+          phoneInput.value = String(customer.phone).replace(/\D/g, '');
+          phoneInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+      hide();
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+
+    const render = (customers) => {
+      results.replaceChildren();
+      const list = Array.isArray(customers) ? customers : [];
+      if (!list.length) {
+        results.hidden = true;
+        input.setAttribute('aria-expanded', 'false');
+        return;
+      }
+      highlighted = -1;
+      list.forEach((customer, index) => {
+        const option = document.createElement('button');
+        option.type = 'button';
+        option.className = 'customer-autocomplete-option';
+        option.setAttribute('role', 'option');
+        option.setAttribute('aria-selected', 'false');
+        option.dataset.index = String(index);
+        const name = document.createElement('strong');
+        name.textContent = String(customer.name || 'Unnamed customer');
+        const details = document.createElement('small');
+        details.textContent = [customer.phone, customer.email].filter(Boolean).join(' · ') || 'Mobile not saved';
+        option.append(name, details);
+        option.addEventListener('mousedown', (event) => event.preventDefault());
+        option.addEventListener('click', () => select(customer));
+        results.appendChild(option);
+      });
+      results.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      position();
+    };
+
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      controller?.abort();
+      if (selectedCustomerId) {
+        selectedCustomerId = '';
+        if (customerSelect) {
+          customerSelect.value = '';
+          customerSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+      const query = input.value.trim();
+      const queryKey = query.toLocaleLowerCase();
+      if (!query) return hide();
+      timer = setTimeout(async () => {
+        const currentRequest = ++requestNumber;
+        controller = new AbortController();
+        try {
+          const mode = input.dataset.customerAutocompleteMode === 'search' ? '' : '&namesOnly=1';
+          const response = await fetch(`/api/customers/search?q=${encodeURIComponent(query)}${mode}`, { signal: controller.signal });
+          const data = await response.json();
+          if (currentRequest === requestNumber && input.value.trim().toLocaleLowerCase() === queryKey) render(data.customers || []);
+        } catch (error) {
+          if (error.name !== 'AbortError') hide();
+        }
+      }, 180);
+    });
+
+    input.addEventListener('keydown', (event) => {
+      const options = Array.from(results.querySelectorAll('.customer-autocomplete-option'));
+      if (event.key === 'ArrowDown' && options.length) {
+        event.preventDefault();
+        highlighted = Math.min(highlighted + 1, options.length - 1);
+      } else if (event.key === 'ArrowUp' && options.length) {
+        event.preventDefault();
+        highlighted = Math.max(highlighted - 1, 0);
+      } else if (event.key === 'Enter' && highlighted >= 0 && options[highlighted]) {
+        event.preventDefault();
+        options[highlighted].click();
+        return;
+      } else if (event.key === 'Escape') {
+        hide();
+        return;
+      } else {
+        return;
+      }
+      options.forEach((option, index) => {
+        const selected = index === highlighted;
+        option.classList.toggle('is-highlighted', selected);
+        option.setAttribute('aria-selected', String(selected));
+      });
+      options[highlighted]?.scrollIntoView({ block: 'nearest' });
+    });
+
+    document.addEventListener('pointerdown', (event) => {
+      if (!input.contains(event.target) && !results.contains(event.target)) hide();
+    });
+    window.addEventListener('resize', position);
+    window.addEventListener('scroll', position, true);
   });
 })();
 
 /* ═══════════════════════════════════════════════════════════════
-   4. BILLING / SALES FORM — barcode scan, live totals
+   5. ITEM NAME AUTOCOMPLETE — shared item master suggestions
+   ═══════════════════════════════════════════════════════════════ */
+(function initSharedItemNameAutocomplete() {
+  const selector = '[data-item-autocomplete]';
+  const initialized = new WeakSet();
+
+  const initInput = (input) => {
+    if (!(input instanceof HTMLInputElement) || initialized.has(input)) return;
+    // Inventory's single-item and batch modals already have richer pickers
+    // that also update metal/rate fields. Keep those specialised workflows.
+    if (input.matches('[data-item-name-input], [data-batch-name-input]')) return;
+    initialized.add(input);
+
+    const host = input.closest('.pos-field, .report-filter-form label, .search-bar label, .autocomplete-wrap, .urd-item-description') || input.parentElement;
+    const results = document.createElement('div');
+    results.className = 'item-autocomplete-results';
+    results.setAttribute('role', 'listbox');
+    results.hidden = true;
+    (host || input.parentElement || input).appendChild(results);
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-expanded', 'false');
+
+    const categoryInput = input.dataset.itemAutocompleteCategorySelector
+      ? input.form?.querySelector(input.dataset.itemAutocompleteCategorySelector)
+      : input.form?.querySelector('input[name="category"]');
+    let timer = null;
+    let controller = null;
+    let requestNumber = 0;
+    let highlighted = -1;
+    let isSelecting = false;
+
+    const hide = () => {
+      clearTimeout(timer);
+      controller?.abort();
+      results.replaceChildren();
+      results.hidden = true;
+      input.setAttribute('aria-expanded', 'false');
+      highlighted = -1;
+    };
+
+    const position = () => {
+      if (results.hidden) return;
+      const rect = input.getBoundingClientRect();
+      const height = Math.min(240, results.scrollHeight || 240);
+      const top = window.innerHeight - rect.bottom < height && rect.top > height
+        ? rect.top - height - 4
+        : rect.bottom + 4;
+      results.style.left = `${Math.max(4, rect.left)}px`;
+      results.style.top = `${Math.max(4, top)}px`;
+      results.style.width = `${rect.width}px`;
+    };
+
+    const select = (item) => {
+      if (!item?.name) return;
+      isSelecting = true;
+      input.value = String(item.name);
+      if (categoryInput && !categoryInput.value.trim() && item.category) {
+        categoryInput.value = String(item.category);
+        categoryInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      hide();
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      isSelecting = false;
+    };
+
+    const render = (list) => {
+      results.replaceChildren();
+      const items = Array.isArray(list) ? list : [];
+      if (!items.length) {
+        results.hidden = true;
+        input.setAttribute('aria-expanded', 'false');
+        return;
+      }
+      highlighted = -1;
+      items.forEach((item, index) => {
+        const option = document.createElement('button');
+        option.type = 'button';
+        option.className = 'item-autocomplete-option';
+        option.setAttribute('role', 'option');
+        option.setAttribute('aria-selected', 'false');
+        option.dataset.index = String(index);
+        const name = document.createElement('strong');
+        name.textContent = String(item.name || 'Unnamed item');
+        const category = document.createElement('small');
+        category.textContent = item.category ? String(item.category) : 'No category saved';
+        option.append(name, category);
+        option.addEventListener('mousedown', (event) => event.preventDefault());
+        option.addEventListener('click', () => select(item));
+        results.appendChild(option);
+      });
+      results.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      position();
+    };
+
+    input.addEventListener('input', () => {
+      if (isSelecting) return;
+      clearTimeout(timer);
+      controller?.abort();
+      const query = input.value.trim();
+      const queryKey = query.toLocaleLowerCase();
+      if (!query) return hide();
+      timer = setTimeout(async () => {
+        const currentRequest = ++requestNumber;
+        controller = new AbortController();
+        try {
+          const response = await fetch(`/api/item-names?q=${encodeURIComponent(query)}`, { signal: controller.signal });
+          if (!response.ok) throw new Error('Could not search item names.');
+          const data = await response.json();
+          if (currentRequest === requestNumber && input.value.trim().toLocaleLowerCase() === queryKey) render(data);
+        } catch (error) {
+          if (error.name !== 'AbortError') hide();
+        }
+      }, 180);
+    });
+
+    input.addEventListener('keydown', (event) => {
+      const options = Array.from(results.querySelectorAll('.item-autocomplete-option'));
+      if (event.key === 'ArrowDown' && options.length) {
+        event.preventDefault();
+        highlighted = Math.min(highlighted + 1, options.length - 1);
+      } else if (event.key === 'ArrowUp' && options.length) {
+        event.preventDefault();
+        highlighted = Math.max(highlighted - 1, 0);
+      } else if (event.key === 'Enter' && highlighted >= 0 && options[highlighted]) {
+        event.preventDefault();
+        options[highlighted].click();
+        return;
+      } else if (event.key === 'Escape') {
+        hide();
+        return;
+      } else {
+        return;
+      }
+      options.forEach((option, index) => {
+        const selected = index === highlighted;
+        option.classList.toggle('is-highlighted', selected);
+        option.setAttribute('aria-selected', String(selected));
+      });
+      options[highlighted]?.scrollIntoView({ block: 'nearest' });
+    });
+
+    document.addEventListener('pointerdown', (event) => {
+      if (!input.contains(event.target) && !results.contains(event.target)) hide();
+    });
+    window.addEventListener('resize', position);
+    window.addEventListener('scroll', position, true);
+  };
+
+  const scan = (root) => {
+    if (!root) return;
+    if (root.matches?.(selector)) initInput(root);
+    root.querySelectorAll?.(selector).forEach(initInput);
+  };
+  scan(document);
+  if (typeof MutationObserver !== 'undefined' && document.body) {
+    const observer = new MutationObserver((records) => records.forEach((record) => record.addedNodes.forEach(scan)));
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   6. SUPPLIER NAME AUTOCOMPLETE — shared supplier suggestions
+   ═══════════════════════════════════════════════════════════════ */
+(function initSharedSupplierNameAutocomplete() {
+  const inputs = Array.from(document.querySelectorAll('[data-supplier-autocomplete]'))
+    // The purchase form has a richer picker which also fills the supplier
+    // profile fields. Do not attach a second menu to that input.
+    .filter((input) => !input.matches('[data-supplier-name]'));
+  if (!inputs.length) return;
+
+  inputs.forEach((input) => {
+    if (input.dataset.supplierAutocompleteReady === '1') return;
+    input.dataset.supplierAutocompleteReady = '1';
+
+    const host = input.closest('.search-bar label, .report-filter-form label, .autocomplete-wrap') || input.parentElement;
+    const results = document.createElement('div');
+    results.className = 'supplier-autocomplete-results';
+    results.setAttribute('role', 'listbox');
+    results.hidden = true;
+    (host || input.parentElement || input).appendChild(results);
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-expanded', 'false');
+
+    let timer = null;
+    let controller = null;
+    let highlighted = -1;
+    let requestNumber = 0;
+
+    const hide = () => {
+      clearTimeout(timer);
+      controller?.abort();
+      results.replaceChildren();
+      results.hidden = true;
+      input.setAttribute('aria-expanded', 'false');
+      highlighted = -1;
+    };
+
+    const position = () => {
+      if (results.hidden) return;
+      const rect = input.getBoundingClientRect();
+      const height = Math.min(240, results.scrollHeight || 240);
+      const top = window.innerHeight - rect.bottom < height && rect.top > height
+        ? rect.top - height - 4
+        : rect.bottom + 4;
+      results.style.left = `${Math.max(4, rect.left)}px`;
+      results.style.top = `${Math.max(4, top)}px`;
+      results.style.width = `${rect.width}px`;
+    };
+
+    const select = (supplier) => {
+      if (!supplier?.name) return;
+      input.value = String(supplier.name).trim();
+      hide();
+      // Keep the active filter form in sync without submitting or reopening
+      // the menu. The user can review the selected name, then press
+      // Search/Apply filters.
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+
+    const render = (suppliers) => {
+      results.replaceChildren();
+      const list = Array.isArray(suppliers) ? suppliers : [];
+      if (!list.length) {
+        results.hidden = true;
+        input.setAttribute('aria-expanded', 'false');
+        return;
+      }
+      highlighted = -1;
+      list.forEach((supplier, index) => {
+        const option = document.createElement('button');
+        option.type = 'button';
+        option.className = 'supplier-autocomplete-option';
+        option.setAttribute('role', 'option');
+        option.setAttribute('aria-selected', 'false');
+        option.dataset.index = String(index);
+        const name = document.createElement('strong');
+        name.textContent = String(supplier.name || 'Unnamed supplier');
+        const details = document.createElement('small');
+        details.textContent = [supplier.phone, supplier.gstin || supplier.panNumber].filter(Boolean).join(' · ') || 'No contact details saved';
+        option.append(name, details);
+        option.addEventListener('mousedown', (event) => event.preventDefault());
+        option.addEventListener('click', () => select(supplier));
+        results.appendChild(option);
+      });
+      results.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+      position();
+    };
+
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      controller?.abort();
+      const query = input.value.trim();
+      const queryKey = query.toLocaleLowerCase();
+      if (!query) return hide();
+      timer = setTimeout(async () => {
+        const currentRequest = ++requestNumber;
+        controller = new AbortController();
+        try {
+          const response = await fetch(`/api/suppliers/search?q=${encodeURIComponent(query)}`, { signal: controller.signal });
+          if (!response.ok) throw new Error('Could not search suppliers.');
+          const data = await response.json();
+          if (currentRequest === requestNumber && input.value.trim().toLocaleLowerCase() === queryKey) render(data.suppliers || []);
+        } catch (error) {
+          if (error.name !== 'AbortError') hide();
+        }
+      }, 180);
+    });
+
+    input.addEventListener('keydown', (event) => {
+      const options = Array.from(results.querySelectorAll('.supplier-autocomplete-option'));
+      if (event.key === 'ArrowDown' && options.length) {
+        event.preventDefault();
+        highlighted = Math.min(highlighted + 1, options.length - 1);
+      } else if (event.key === 'ArrowUp' && options.length) {
+        event.preventDefault();
+        highlighted = Math.max(highlighted - 1, 0);
+      } else if (event.key === 'Enter' && highlighted >= 0 && options[highlighted]) {
+        event.preventDefault();
+        options[highlighted].click();
+        return;
+      } else if (event.key === 'Escape') {
+        hide();
+        return;
+      } else {
+        return;
+      }
+      options.forEach((option, index) => {
+        const selected = index === highlighted;
+        option.classList.toggle('is-highlighted', selected);
+        option.setAttribute('aria-selected', String(selected));
+      });
+      options[highlighted]?.scrollIntoView({ block: 'nearest' });
+    });
+
+    document.addEventListener('pointerdown', (event) => {
+      if (!input.contains(event.target) && !results.contains(event.target)) hide();
+    });
+    window.addEventListener('resize', position);
+    window.addEventListener('scroll', position, true);
+  });
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   7. COMPACT SALES DETAILS — customer and URD dialogs
+   ═══════════════════════════════════════════════════════════════ */
+(function initCompactSaleDetails() {
+  const form = document.querySelector('[data-barcode-sale]');
+  if (!form) return;
+
+  const customerModal = form.querySelector('#saleCustomerModal');
+  const customerOpen = form.querySelector('[data-sale-customer-open]');
+  const customerCloseButtons = form.querySelectorAll('[data-sale-customer-close]');
+  const customerDone = form.querySelector('[data-sale-customer-done]');
+  const customerSummary = form.querySelector('[data-sale-customer-summary]');
+  const customerSummaryContent = form.querySelector('[data-sale-customer-summary-content]');
+  const customerSummaryName = form.querySelector('[data-sale-customer-summary-name]');
+  const customerSummaryDetails = form.querySelector('[data-sale-customer-summary-details]');
+  const urdModal = form.querySelector('#saleUrdModal');
+  const urdOpen = form.querySelector('[data-sale-urd-open]');
+  const urdCloseButtons = form.querySelectorAll('[data-sale-urd-close]');
+  const urdDone = form.querySelector('[data-sale-urd-done]');
+  const urdRemove = form.querySelector('[data-sale-urd-remove]');
+  const urdSection = form.querySelector('[data-sale-urd]');
+  const urdSummary = form.querySelector('[data-sale-urd-summary]');
+  const urdSummaryContent = form.querySelector('[data-sale-urd-summary-content]');
+  const urdSummaryName = form.querySelector('[data-sale-urd-summary-name]');
+  const urdSummaryDetails = form.querySelector('[data-sale-urd-summary-details]');
+
+  const isVisible = (modal) => Boolean(modal && modal.getAttribute('aria-hidden') !== 'true');
+  const open = (modal, selector) => {
+    if (!modal) return;
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => modal.querySelector(selector)?.focus(), 0);
+  };
+  const close = (modal, opener) => {
+    if (!modal) return;
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+    opener?.focus();
+  };
+
+  function updateCustomerSummary() {
+    if (!customerOpen || !customerSummaryContent) return;
+    const lookup = form.querySelector('[data-customer-lookup]');
+    const existing = lookup?.querySelector('[data-existing-customer]');
+    const existingName = lookup?.querySelector('[data-existing-name]')?.textContent?.trim();
+    const existingDetails = lookup?.querySelector('[data-existing-details]')?.textContent?.trim();
+    const customerId = lookup?.querySelector('[data-customer-id]')?.value?.trim();
+    const editName = form.querySelector('[data-edit-customer-name]')?.value?.trim();
+    const nameInput = form.querySelector('[data-customer-name]:not([disabled])');
+    const phone = form.querySelector('[data-customer-phone]')?.value?.trim();
+    const email = form.querySelector('[data-edit-customer-email], [data-customer-email]:not([disabled])')?.value?.trim();
+    const address = form.querySelector('[data-edit-customer-address], [data-customer-address]:not([disabled])')?.value?.trim();
+    const pan = form.querySelector('[data-edit-customer-pan], [data-customer-pan]:not([disabled]), [data-existing-pan]')?.value?.trim();
+    const hasDetails = Boolean((existing && !existing.hidden && (customerId || existingName)) || editName || nameInput?.value?.trim() || phone || email || address || pan);
+    if (hasDetails) {
+      if (existing && !existing.hidden && (customerId || existingName)) {
+        customerSummaryName.textContent = existingName || 'Existing customer';
+        customerSummaryDetails.textContent = existingDetails || [phone, email, address, pan].filter(Boolean).join(' · ') || 'Saved profile and ledger will be used';
+      } else {
+        customerSummaryName.textContent = editName || nameInput?.value?.trim() || 'New customer';
+        customerSummaryDetails.textContent = [phone, email, address, pan].filter(Boolean).join(' · ') || 'Customer details added';
+      }
+      customerSummaryName.title = customerSummaryName.textContent;
+      customerSummaryDetails.title = customerSummaryDetails.textContent;
+    }
+    customerSummaryContent.hidden = !hasDetails;
+    customerSummary?.classList.toggle('has-details', hasDetails);
+    customerOpen.textContent = hasDetails ? 'Edit customer' : '+ Add customer';
+  }
+
+  function updateUrdSummary() {
+    if (!urdOpen || !urdSummaryContent) return;
+    const enabled = form.querySelector('[data-urd-enabled]')?.checked;
+    const metal = form.querySelector('[data-urd-metal]')?.value === 'SILVER' ? 'Silver' : 'Gold';
+    const purity = form.querySelector('[data-urd-purity-manual]')?.value?.trim();
+    const grossWeight = Number(form.querySelector('[data-urd-gross-weight]')?.value || 0);
+    const netWeight = Number(form.querySelector('[data-urd-net-weight]')?.value || 0);
+    const amount = Number(form.querySelector('[data-urd-amount]')?.value || 0);
+    const description = form.querySelector('[name="urdDescription"]')?.value?.trim();
+    if (enabled) {
+      urdSummaryName.textContent = `${metal} buyback${purity ? ` · ${purity}` : ''}`;
+      urdSummaryDetails.textContent = [
+        `Net ${netWeight.toFixed(3)} g`,
+        grossWeight > 0 ? `Gross ${grossWeight.toFixed(3)} g` : '',
+        fmt(amount),
+        description
+      ].filter(Boolean).join(' · ');
+      urdSummaryName.title = urdSummaryName.textContent;
+      urdSummaryDetails.title = urdSummaryDetails.textContent;
+    }
+    urdSummaryContent.hidden = !enabled;
+    urdSummary?.classList.toggle('has-details', Boolean(enabled));
+    urdSection?.classList.toggle('has-details', Boolean(enabled));
+    urdOpen.textContent = enabled ? 'Edit URD' : '+ Add URD';
+  }
+
+  customerOpen?.addEventListener('click', () => open(customerModal, '[data-customer-phone], [data-customer-search], [data-edit-customer-name]'));
+  customerCloseButtons.forEach((button) => button.addEventListener('click', () => close(customerModal, customerOpen)));
+  customerDone?.addEventListener('click', () => { updateCustomerSummary(); close(customerModal, customerOpen); });
+  customerModal?.addEventListener('click', (event) => { if (event.target === customerModal) close(customerModal, customerOpen); });
+  const customerLookup = form.querySelector('[data-customer-lookup]');
+  if (customerLookup && typeof MutationObserver !== 'undefined') {
+    new MutationObserver(updateCustomerSummary).observe(customerLookup, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['hidden'] });
+  }
+
+  let urdStateBeforeOpen = null;
+  const urdCheckbox = form.querySelector('[data-urd-enabled]');
+  const setUrdEnabled = (enabled) => {
+    if (!urdCheckbox || urdCheckbox.checked === enabled) return;
+    urdCheckbox.checked = enabled;
+    urdCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+  const cancelUrdDialog = () => {
+    if (urdStateBeforeOpen !== null) setUrdEnabled(urdStateBeforeOpen);
+    urdStateBeforeOpen = null;
+    close(urdModal, urdOpen);
+  };
+  urdOpen?.addEventListener('click', () => {
+    urdStateBeforeOpen = Boolean(urdCheckbox?.checked);
+    setUrdEnabled(true);
+    open(urdModal, '[data-urd-metal]');
+  });
+  urdCloseButtons.forEach((button) => button.addEventListener('click', cancelUrdDialog));
+  urdDone?.addEventListener('click', () => { urdStateBeforeOpen = null; updateUrdSummary(); close(urdModal, urdOpen); });
+  urdRemove?.addEventListener('click', () => { urdStateBeforeOpen = null; setUrdEnabled(false); updateUrdSummary(); close(urdModal, urdOpen); });
+  urdModal?.addEventListener('click', (event) => { if (event.target === urdModal) cancelUrdDialog(); });
+
+  form.addEventListener('input', () => { updateCustomerSummary(); updateUrdSummary(); });
+  form.addEventListener('change', () => { updateCustomerSummary(); updateUrdSummary(); });
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    if (isVisible(customerModal)) close(customerModal, customerOpen);
+    else if (isVisible(urdModal)) cancelUrdDialog();
+  });
+  updateCustomerSummary();
+  updateUrdSummary();
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   7. BILLING / SALES FORM — barcode scan, live totals
    ═══════════════════════════════════════════════════════════════ */
 (function initBarcodeSale() {
   const form = document.querySelector('[data-barcode-sale]');
@@ -787,12 +1396,18 @@ document.querySelectorAll('.flash').forEach((el) => {
   const totalEl = form.querySelector('[data-total]');
   const paidInput = form.querySelector('[data-paid]');
   const paymentMethodInput = form.querySelector('[data-payment-method]');
-  const splitPayment = form.querySelector('[data-split-payment]');
+  const splitPaymentModal = form.querySelector('#saleSplitPaymentModal');
+  const splitPaymentOpen = form.querySelector('[data-split-payment-open]');
+  const splitPaymentSummary = form.querySelector('[data-split-payment-summary]');
+  const splitPaymentTotalEl = form.querySelector('[data-split-payment-total]');
   const cashPaidInput = form.querySelector('[data-cash-paid]');
   const upiPaidInput = form.querySelector('[data-upi-paid]');
   const cardPaidInput = form.querySelector('[data-card-paid]');
   const bankPaidInput = form.querySelector('[data-bank-paid]');
   const balanceEl = form.querySelector('[data-balance]');
+  const balanceRow = form.querySelector('[data-balance-row]');
+  const paidInputWrap = form.querySelector('[data-paid-wrap]');
+  const paymentMethodWrap = form.querySelector('[data-payment-method-wrap]');
   const saleDateInput = form.querySelector('[data-sale-date]');
   const urdEnabled = form.querySelector('[data-urd-enabled]');
   const urdFields = form.querySelector('[data-urd-fields]');
@@ -808,7 +1423,6 @@ document.querySelectorAll('.flash').forEach((el) => {
   const netPayableEl = form.querySelector('[data-net-payable]');
   const urdRefundMethodWrap = form.querySelector('[data-urd-refund-method]');
   const urdRefundMethodInput = form.querySelector('select[data-urd-refund-method]');
-  const urdRefundNote = form.querySelector('[data-urd-refund-note]');
 
   let rowCount = 0;
   let isUrdRefundable = false;
@@ -1297,14 +1911,50 @@ document.querySelectorAll('.flash').forEach((el) => {
   if (upiPaidInput) upiPaidInput.addEventListener('input', updateFormTotals);
   if (cardPaidInput) cardPaidInput.addEventListener('input', updateFormTotals);
   if (bankPaidInput) bankPaidInput.addEventListener('input', updateFormTotals);
+
+  function updateSplitPaymentSummary() {
+    const entries = [
+      [cashPaidInput, 'Cash'],
+      [upiPaidInput, 'UPI'],
+      [cardPaidInput, 'Card'],
+      [bankPaidInput, 'Bank transfer']
+    ];
+    const total = roundMoney(entries.reduce((sum, [input]) => sum + n(input?.value), 0));
+    if (splitPaymentTotalEl) splitPaymentTotalEl.textContent = fmt(total);
+    if (splitPaymentSummary) {
+      const parts = entries
+        .map(([input, label]) => [label, n(input?.value)])
+        .filter(([, amount]) => amount > 0)
+        .map(([label, amount]) => `${label} ${fmt(amount)}`);
+      splitPaymentSummary.textContent = parts.length ? parts.join(' · ') : 'Enter amounts in the popup';
+    }
+    if (splitPaymentOpen) splitPaymentOpen.textContent = total > 0 ? 'Edit split amounts' : 'Enter split amounts';
+  }
+
+  function closeSplitPaymentModal({ focusTrigger = true } = {}) {
+    if (!splitPaymentModal) return;
+    splitPaymentModal.style.display = 'none';
+    splitPaymentModal.setAttribute('aria-hidden', 'true');
+    if (focusTrigger && !splitPaymentOpen?.hidden) splitPaymentOpen.focus();
+  }
+
+  function openSplitPaymentModal() {
+    if (!splitPaymentModal || isUrdRefundable || paymentMethodInput?.value !== 'MIXED') return;
+    updateSplitPaymentSummary();
+    splitPaymentModal.style.display = 'flex';
+    splitPaymentModal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => [cashPaidInput, upiPaidInput, cardPaidInput, bankPaidInput].find((input) => input && !input.disabled)?.focus(), 0);
+  }
+
   function updatePaymentMethodState() {
     if (!paymentMethodInput) return;
     const mixed = !isUrdRefundable && paymentMethodInput.value === 'MIXED';
     const isCredit = !isUrdRefundable && paymentMethodInput.value === 'CREDIT';
-    if (splitPayment) {
-      splitPayment.hidden = !mixed;
-      splitPayment.style.display = mixed ? 'grid' : 'none';
+    if (splitPaymentOpen) {
+      splitPaymentOpen.hidden = !mixed;
+      splitPaymentOpen.disabled = !mixed;
     }
+    if (splitPaymentSummary) splitPaymentSummary.hidden = !mixed;
     if (cashPaidInput) cashPaidInput.disabled = !mixed;
     if (upiPaidInput) upiPaidInput.disabled = !mixed;
     if (cardPaidInput) cardPaidInput.disabled = !mixed;
@@ -1318,15 +1968,39 @@ document.querySelectorAll('.flash').forEach((el) => {
       }
     }
     paymentMethodInput.disabled = isUrdRefundable;
+    if (paidInputWrap) paidInputWrap.hidden = isUrdRefundable;
+    if (paymentMethodWrap) paymentMethodWrap.hidden = isUrdRefundable;
+    if (balanceRow) balanceRow.hidden = isUrdRefundable;
     if (urdRefundMethodWrap) urdRefundMethodWrap.hidden = !isUrdRefundable;
     if (urdRefundMethodInput) urdRefundMethodInput.disabled = !isUrdRefundable;
-    if (urdRefundNote) urdRefundNote.hidden = !isUrdRefundable;
+    updateSplitPaymentSummary();
+    if (!mixed && splitPaymentModal?.style.display === 'flex') closeSplitPaymentModal({ focusTrigger: false });
   }
 
+  [cashPaidInput, upiPaidInput, cardPaidInput, bankPaidInput].forEach((input) => input?.addEventListener('input', updateSplitPaymentSummary));
+  splitPaymentOpen?.addEventListener('click', openSplitPaymentModal);
+  splitPaymentModal?.querySelectorAll('[data-split-payment-close]').forEach((button) => button.addEventListener('click', () => closeSplitPaymentModal()));
+  splitPaymentModal?.addEventListener('click', (event) => {
+    if (event.target === splitPaymentModal) closeSplitPaymentModal();
+  });
+  splitPaymentModal?.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeSplitPaymentModal();
+    if (event.key === 'Enter' && event.target.matches('input')) {
+      event.preventDefault();
+      closeSplitPaymentModal();
+    }
+  });
+
   if (paymentMethodInput) {
+    let previousPaymentMethod = paymentMethodInput.value;
     paymentMethodInput.addEventListener('change', () => {
+      const shouldOpenSplitPayment = paymentMethodInput.value === 'MIXED'
+        && previousPaymentMethod !== 'MIXED'
+        && !isUrdRefundable;
       updatePaymentMethodState();
       updateFormTotals();
+      if (shouldOpenSplitPayment) openSplitPaymentModal();
+      previousPaymentMethod = paymentMethodInput.value;
     });
     updatePaymentMethodState();
   }
@@ -1616,6 +2290,8 @@ document.querySelectorAll('.flash').forEach((el) => {
     restoringDraft = false;
     const restoredPhone = form.querySelector('[data-customer-phone]');
     if (restoredPhone?.value) restoredPhone.dispatchEvent(new Event('input', { bubbles: true }));
+    const restoredCustomerName = form.querySelector('[data-customer-name]:not([disabled]), [data-edit-customer-name]');
+    if (restoredCustomerName?.value) restoredCustomerName.dispatchEvent(new Event('input', { bubbles: true }));
     scheduleDraftSave();
   }
 
@@ -1747,6 +2423,7 @@ document.querySelectorAll('.flash').forEach((el) => {
                 if (editPanInput && !editPanInput.value) editPanInput.value = String(data.customer.panNumber || '').toUpperCase();
                 if (editEmailInput && !editEmailInput.value) editEmailInput.value = data.customer.email || '';
                 if (editAddressInput && !editAddressInput.value) editAddressInput.value = String(data.customer.address || '').toUpperCase();
+                editNameInput?.dispatchEvent(new Event('input', { bubbles: true }));
               }
             } catch (_) {}
           }, 350);
@@ -1764,7 +2441,7 @@ document.querySelectorAll('.flash').forEach((el) => {
 })();
 
 /* ═══════════════════════════════════════════════════════════════
-   5. CUSTOMER DETAIL — payment form amount slider hint
+   8. CUSTOMER DETAIL — payment form amount slider hint
    ═══════════════════════════════════════════════════════════════ */
 (function initCustomerPayment() {
   const amountInput = document.querySelector('.receive-payment input[name="amount"]');
@@ -1792,7 +2469,7 @@ document.querySelectorAll('.flash').forEach((el) => {
 })();
 
 /* ═══════════════════════════════════════════════════════════════
-   7. INVENTORY LABEL BATCH — select multiple labels for one print run
+   9. INVENTORY LABEL BATCH — select multiple labels for one print run
    ═══════════════════════════════════════════════════════════════ */
 function updateInventoryLabelBatchState() {
   const form = document.getElementById('label-print-form');
@@ -1882,7 +2559,7 @@ function updateInventoryLabelBatchState() {
   }
 
   async function search(query) {
-    if (isSelecting || query.length < 2) { close(); return; }
+    if (isSelecting || query.length < 1) { close(); return; }
     try {
       const res = await fetch(`/api/item-names?q=${encodeURIComponent(query)}`);
       if (!res.ok || isSelecting) return;
@@ -1946,7 +2623,7 @@ function updateInventoryLabelBatchState() {
 })();
 
 /* ═══════════════════════════════════════════════════════════════
-   7. REPORT ITEM-WISE WEIGHT SEARCH & LIVE TOTALS
+   10. REPORT ITEM-WISE WEIGHT SEARCH & LIVE TOTALS
    ═══════════════════════════════════════════════════════════════ */
 (function initReportItemSearch() {
   const searchInput = document.getElementById('reportItemSearchInput');
@@ -2004,7 +2681,7 @@ function updateInventoryLabelBatchState() {
 })();
 
 /* ═══════════════════════════════════════════════════════════════
-   8. FAST BATCH INVENTORY PIECE ADDER MODAL
+   11. FAST BATCH INVENTORY PIECE ADDER MODAL
    ═══════════════════════════════════════════════════════════════ */
 (function initBatchInventoryModal() {
   const modal = document.getElementById('batchPieceModal');
@@ -2855,7 +3532,7 @@ function updateInventoryLabelBatchState() {
 })();
 
 /* ═══════════════════════════════════════════════════════════════
-   9. FAST BATCH INVENTORY PIECE REMOVER
+   12. FAST BATCH INVENTORY PIECE REMOVER
    ═══════════════════════════════════════════════════════════════ */
 (function initBatchRemoveInventoryModal() {
   const modal = document.getElementById('batchRemoveModal');

@@ -9,7 +9,7 @@
 <% const qVal = typeof q !== 'undefined' ? q : ''; const currentState = typeof state !== 'undefined' ? state : 'ACTIVE'; const purchaseList = typeof purchases !== 'undefined' && Array.isArray(purchases) ? purchases : []; %>
 <section class="panel register-panel">
   <form class="search-bar" method="get" action="/urd-purchases">
-    <input name="q" value="<%= qVal %>" placeholder="Search by customer name, mobile number or URD no.">
+    <input name="q" data-customer-autocomplete data-customer-autocomplete-mode="search" value="<%= qVal %>" placeholder="Search by customer name, mobile number or URD no." autocomplete="off">
     <select name="state"><option value="ACTIVE" <%= currentState === 'ACTIVE' ? 'selected' : '' %>>Active purchases</option><option value="CANCELLED" <%= currentState === 'CANCELLED' ? 'selected' : '' %>>Cancelled purchases</option></select>
     <button class="button secondary" type="submit">Search</button>
     <% if (qVal) { %><a class="button ghost" href="/urd-purchases">Clear</a><% } %>

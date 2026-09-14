@@ -62,8 +62,8 @@
   height: 100vh;
   padding: 0 12px;
   color: #d1d5db;
-  background: #0b0c10;
-  border-right: 1px solid #1a1b24;
+  background: #000000;
+  border-right: 1px solid #1b1b1b;
   box-shadow: none;
   display: flex;
   flex-direction: column;
@@ -101,7 +101,7 @@
 .erp-ui .brand-mark-sm.brand-mark-image {
   padding: 0;
   overflow: hidden;
-  background: #101114;
+  background: #000000;
   border-radius: 50%;
   box-shadow: 0 2px 10px rgba(217, 119, 6, 0.24);
 }
@@ -120,7 +120,7 @@
   overflow-x: hidden;
   padding: 0 0 12px;
   scrollbar-width: thin;
-  scrollbar-color: #272836 transparent;
+  scrollbar-color: #2a2a2a transparent;
 }
 .erp-ui .nav-group + .nav-group { margin-top: 20px; }
 .erp-ui .nav-group-label {
@@ -191,7 +191,7 @@
   flex-shrink: 0;
   margin-top: auto;
   padding: 12px 0;
-  border-top: 1px solid #1a1b24;
+  border-top: 1px solid #1b1b1b;
 }
 .erp-ui .account-menu { position: relative; }
 .erp-ui .account-menu summary {
@@ -204,17 +204,17 @@
   border-radius: 9px;
 }
 .erp-ui .account-menu summary::-webkit-details-marker { display: none; }
-.erp-ui .account-menu summary:hover { background: #181922; }
+.erp-ui .account-menu summary:hover { background: #181818; }
 .erp-ui .account-avatar {
   display: grid;
   place-items: center;
   width: 33px;
   height: 33px;
   border-radius: 50%;
-  background: #242636;
+  background: #1a1a1a;
   color: #fcd34d;
   font-weight: 750;
-  border: 1px solid #3c3e52;
+  border: 1px solid #383838;
 }
 .erp-ui .account-copy {
   display: grid;
@@ -282,6 +282,40 @@
   padding: 12px 28px;
   border-bottom: 1px solid var(--line);
   background: #ffffff;
+}
+.erp-ui .workspace-toolbar-start {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.erp-ui .sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  background: #f9fafb;
+  color: #4b5563;
+  font: 600 11px 'Segoe UI', system-ui, sans-serif;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.erp-ui .sidebar-toggle:hover {
+  background: #ffffff;
+  border-color: #f5c042;
+  color: #111215;
+}
+.erp-ui .sidebar-toggle-glyph {
+  display: inline-block;
+  min-width: 11px;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 14px;
+  text-align: center;
 }
 .erp-ui .workspace-breadcrumb {
   display: flex;
@@ -825,12 +859,10 @@
 .erp-ui .sale-cart-row { border-color: #e5e7eb; }
 .erp-ui .line-section-label { color: #6b7280; }
 .erp-ui .urd-settlement { background: #fffdf5; border: 1px solid #fde68a; }
-.erp-ui.billing-focus-mode .main-content { width: 100%; margin: 0; padding: 18px 28px 32px; }
-
 /* Dashboard: operational summary, then invoices and stock detail. */
 .erp-ui .overview-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 22px;
 }
@@ -868,6 +900,11 @@
 .erp-ui .overview-metric.metric-cash { background: #faf5ff; border-color: #e9d5ff; }
 .erp-ui .metric-cash .metric-symbol { background: #f3e8ff; color: #9333ea; }
 .erp-ui .metric-cash > strong { color: #7e22ce; }
+.erp-ui .overview-metric.metric-receivables { background: #fff7ed; border-color: #fed7aa; }
+.erp-ui .metric-receivables .metric-symbol { background: #ffedd5; color: #ea580c; }
+.erp-ui .metric-receivables > strong { color: #c2410c; }
+.erp-ui .metric-receivables .metric-link { color: #c2410c; font-weight: 600; }
+.erp-ui .metric-receivables .metric-link:hover { color: #9a3412; }
 
 .erp-ui .overview-metric > strong {
   display: block;
@@ -895,31 +932,6 @@
 .erp-ui .invoice-reference { color: #b47a18; font-size: 11px; white-space: nowrap; font-weight: 600; }
 .erp-ui .overview-side { display: grid; gap: 18px; }
 .erp-ui .overview-side .panel { margin: 0; }
-.erp-ui .credit-summary {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #181510 0%, #110f0b 100%);
-  border: 1px solid #3d3119;
-  border-radius: 12px;
-  padding: 20px;
-}
-.erp-ui .credit-summary h2 { color: #f5c042; font-size: 12px; font-weight: 600; }
-.erp-ui .credit-summary > strong {
-  display: block;
-  margin: 10px 0 18px;
-  color: #ffd666;
-  font-size: 30px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.erp-ui .credit-summary a {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: #fde68a;
-  font-size: 11px;
-  font-weight: 600;
-}
 .erp-ui .stock-distribution {
   margin: 0;
   padding: 0;
@@ -1250,19 +1262,40 @@
   .erp-ui { --workspace-side: 210px; }
   .erp-ui .main-content { padding-left: 22px; padding-right: 22px; }
   .erp-ui .workspace-toolbar { margin-left: -22px; margin-right: -22px; padding-left: 22px; padding-right: 22px; }
+  .erp-ui .overview-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .erp-ui .overview-grid { grid-template-columns: minmax(0, 1fr); }
   .erp-ui .overview-side { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .erp-ui .scheme-plans-list { grid-template-columns: 1fr; }
   .erp-ui .report-directory .report-menu { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Desktop full-screen mode. The preference is persisted by workspace.js;
+   mobile keeps using its existing drawer toggle instead. */
+@media (min-width: 901px) {
+  .erp-ui .sidebar {
+    transition: transform .24s ease;
+  }
+  .erp-ui .main-content {
+    transition: width .24s ease, margin-left .24s ease;
+  }
+  .erp-ui.sidebar-collapsed .sidebar {
+    transform: translateX(-100%);
+    pointer-events: none;
+  }
+  .erp-ui.sidebar-collapsed .main-content {
+    width: 100%;
+    margin-left: 0;
+  }
+}
 @media (max-width: 900px) {
+  .erp-ui .sidebar-toggle { display: none; }
   .erp-ui .sidebar { left: -260px; width: 260px; z-index: 1002; }
   .erp-ui .sidebar.is-open { transform: translateX(260px); }
   .erp-ui .sidebar nav { display: block; }
   .erp-ui .sidebar-foot { display: block; }
-  .erp-ui .mobile-top-bar { background: #ffffff; border-bottom: 1px solid var(--line); box-shadow: none; color: #111215; }
-  .erp-ui .mobile-menu-toggle { color: #111215; }
-  .erp-ui .mobile-brand { color: #111215; }
+  .erp-ui .mobile-top-bar { background: #000000; border-bottom: 1px solid #1b1b1b; box-shadow: none; color: #ffffff; }
+  .erp-ui .mobile-menu-toggle { color: #ffffff; border-color: #383838; }
+  .erp-ui .mobile-brand { color: #ffffff; }
   .erp-ui .main-content { width: 100% !important; margin-left: 0 !important; padding: 72px 18px 28px !important; }
   .erp-ui .workspace-toolbar { display: flex; min-height: 46px; padding: 0 0 14px; margin: 0 0 20px; background: transparent; }
   .erp-ui .workspace-breadcrumb { display: none; }
@@ -1271,12 +1304,12 @@
   .erp-ui .overview-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .erp-ui .page-header { align-items: flex-start; }
   .erp-ui .page-header .header-actions { justify-content: flex-start; }
-  .erp-ui.billing-focus-mode .main-content { padding-top: 18px !important; }
   .erp-login .login-page { grid-template-columns: 1fr; }
   .erp-login .login-hero { display: none; }
   .erp-login .login-form-panel { padding: 75px 26px 35px; }
 }
 @media (max-width: 650px) {
+  .erp-ui .overview-metrics { grid-template-columns: 1fr; }
   .erp-ui .overview-side { grid-template-columns: 1fr; }
   .erp-ui .overview-metric { padding: 15px; }
   .erp-ui .overview-metric > strong { font-size: 23px; }

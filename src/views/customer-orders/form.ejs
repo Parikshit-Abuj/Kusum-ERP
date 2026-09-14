@@ -10,7 +10,7 @@
       <input type="hidden" name="customerId" data-order-customer-id value="<%= customer.id || '' %>">
       <div class="form-grid four customer-order-edit-fields">
         <label>Mobile number<input name="customerPhone" inputmode="numeric" autocomplete="tel" maxlength="15" placeholder="Optional mobile number" value="<%= customer.phone || '' %>"></label>
-        <label>Customer name *<input name="customerName" autocomplete="off" required placeholder="Customer full name" value="<%= customer.name || '' %>"></label>
+        <label>Customer name *<input name="customerName" data-customer-autocomplete autocomplete="off" required placeholder="Customer full name" value="<%= customer.name || '' %>"></label>
         <label>Address<input name="customerAddress" placeholder="Optional" value="<%= customer.address || '' %>"></label>
         <label>PAN<input name="customerPan" maxlength="20" placeholder="Optional" value="<%= customer.panNumber || '' %>"></label>
       </div>
@@ -35,7 +35,7 @@
           </div>
         </div>
         <div class="cust-new-grid" data-new-customer-fields hidden>
-          <div class="pos-field"><label>Customer Name *</label><input name="customerName" disabled data-customer-name data-uppercase placeholder="Customer full name"></div>
+          <div class="pos-field"><label>Customer Name *</label><input name="customerName" disabled data-customer-name data-customer-autocomplete data-uppercase placeholder="Customer full name"></div>
           <div class="pos-field"><label>PAN No. (optional)</label><input name="customerPan" disabled data-customer-pan placeholder="e.g. ABCDE1234F" maxlength="10" autocomplete="off" style="text-transform:uppercase;"></div>
           <div class="pos-field"><label>Email (optional)</label><input name="customerEmail" type="email" disabled data-customer-email placeholder="customer@gmail.com"></div>
           <div class="pos-field"><label>City / Address</label><input name="customerAddress" disabled data-customer-address data-uppercase placeholder="City / Area"></div>
@@ -46,7 +46,7 @@
   <section class="form-section"><h2>Ordered jewellery</h2><div class="form-grid four">
     <label>Order date *<input name="orderDate" type="date" required value="<%= current.orderDate ? dateInput(current.orderDate) : dateInput() %>"></label>
     <label>Expected delivery<input name="dueDate" type="date" value="<%= current.dueDate ? dateInput(current.dueDate) : '' %>"></label>
-    <label>Item name *<input name="itemName" data-title-case required placeholder="e.g. Gold Earring" value="<%= current.itemName || '' %>"></label>
+    <label>Item name *<input name="itemName" data-title-case data-item-autocomplete required placeholder="e.g. Gold Earring" value="<%= current.itemName || '' %>"></label>
     <label>Category<input name="category" data-title-case placeholder="e.g. Earring" value="<%= current.category || '' %>"></label>
     <label>Metal *<select name="metal"><option value="GOLD" <%= current.metal !== 'SILVER' ? 'selected' : '' %>>Gold</option><option value="SILVER" <%= current.metal === 'SILVER' ? 'selected' : '' %>>Silver</option></select></label>
     <label>Purity<input name="purity" placeholder="Write purity, e.g. 22K" value="<%= current.purity || '' %>"></label>

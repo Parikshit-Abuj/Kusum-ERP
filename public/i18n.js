@@ -24,6 +24,8 @@
     'Cash flow today': 'आजचा रोख प्रवाह',
     'Customer receivables': 'ग्राहकांकडून येणे',
     'Open balance register': 'बाकी रजिस्टर उघडा',
+    'Hide navigation': 'नेव्हिगेशन लपवा',
+    'Show navigation': 'नेव्हिगेशन दाखवा',
     'Stock by metal': 'धातूनुसार साठा',
     'Top selling item today': 'आज सर्वाधिक विकलेली वस्तू',
     'Item-wise stock': 'वस्तूनुसार साठा',

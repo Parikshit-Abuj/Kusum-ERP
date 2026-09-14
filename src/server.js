@@ -6,9 +6,9 @@ const session = require('express-session');
 const path = require('path');
 const crypto = require('crypto');
 const { Prisma } = require('@prisma/client');
+const { defaultShopDataDirectory } = require('./lib/app-paths');
 const appRoot = path.join(__dirname, '..');
-const shopDataDirectory = process.env.KUSUM_APP_DATA
-  || path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'Kusum Jewelers ERP');
+const shopDataDirectory = defaultShopDataDirectory();
 const configPath = process.env.KUSUM_CONFIG_PATH
   || (process.env.KUSUM_APP_DATA ? path.join(shopDataDirectory, '.env') : path.join(appRoot, '.env'));
 dotenv.config({ path: configPath });
@@ -23,7 +23,10 @@ const { writeSaleInvoice } = require('./lib/sale-invoice-pdf');
 const { writeCustomerOrderInvoice } = require('./lib/customer-order-pdf');
 const { writeSchemeInstallmentReceipt, writeSchemeConsolidatedReceipt, paymentParts } = require('./lib/scheme-payment-pdf');
 const { buildTsplJob, checkTcpPrinter, sendTsplToPrinter } = require('./lib/tspl-labels');
-const { resolveTscPrinter, cachedTscPrinterStatus } = require('./lib/windows-printers');
+const printerBackend = process.platform === 'win32'
+  ? require('./lib/windows-printers')
+  : require('./lib/unix-printers');
+const { resolveTscPrinter, cachedTscPrinterStatus } = printerBackend;
 const { provisionShopDatabase, enableNetworkSharing, updatePrinterConfiguration, updateLoginConfiguration, parseDatabaseConnection, isLocalHost, runBundledMigrations, verifyClientConnection } = require('./lib/shop-provisioning');
 const { buildExcelExport } = require('./lib/excel-export');
 const { RESOURCE_LIST, resourceFor, parseDateRange, getExportPayload, getSchemePlanExportPayload, archiveData } = require('./lib/data-lifecycle');
@@ -555,12 +558,28 @@ async function databaseConnectionError(force = false) {
   }
 }
 
+function nativePrinterMode() {
+  return process.platform === 'win32' ? 'WINDOWS' : 'CUPS';
+}
+
+function normalisePrinterMode(value) {
+  const mode = String(value || '').trim().toUpperCase();
+  if (mode === 'TCP') return 'TCP';
+  if (mode === 'WINDOWS' && process.platform === 'win32') return 'WINDOWS';
+  if (mode === 'CUPS' && process.platform !== 'win32') return 'CUPS';
+  return nativePrinterMode();
+}
+
+function printerPlatformName() {
+  return process.platform === 'win32' ? 'windows' : 'cups';
+}
+
 function setupDefaults() {
   const defaults = {
     setupMode: 'SERVER', mysqlHost: 'localhost', mysqlPort: '3306', databaseName: 'kusum_erp',
     databaseUser: 'kusum_erp_shared', appUsername: process.env.AUTH_USERNAME || 'kusum',
-    printerMode: String(process.env.TSC_PRINTER_MODE || 'WINDOWS').toUpperCase() === 'TCP' ? 'TCP' : 'WINDOWS',
-    printerName: process.env.TSC_PRINTER_NAME || 'TSC TTP-244 Pro',
+    printerMode: normalisePrinterMode(process.env.TSC_PRINTER_MODE),
+    printerName: process.env.TSC_PRINTER_NAME || (process.platform === 'win32' ? 'TSC TTP-244 Pro' : ''),
     printerHost: process.env.TSC_PRINTER_HOST || '',
     printerPort: process.env.TSC_PRINTER_PORT || '9100'
   };
@@ -582,13 +601,33 @@ function setupDefaults() {
 }
 
 function configuredLabelPrinter() {
-  const mode = String(process.env.TSC_PRINTER_MODE || 'WINDOWS').trim().toUpperCase() === 'TCP' ? 'TCP' : 'WINDOWS';
+  const mode = normalisePrinterMode(process.env.TSC_PRINTER_MODE);
   return {
     mode,
-    name: String(process.env.TSC_PRINTER_NAME || 'TSC TTP-244 Pro').trim(),
+    name: String(process.env.TSC_PRINTER_NAME || (process.platform === 'win32' ? 'TSC TTP-244 Pro' : '')).trim(),
     host: String(process.env.TSC_PRINTER_HOST || '').trim(),
     port: Number(process.env.TSC_PRINTER_PORT || 9100)
   };
+}
+
+function printerNeedsQueueName(printer) {
+  return printer.mode === 'WINDOWS' || printer.mode === 'CUPS';
+}
+
+function printerDisplayName(printer) {
+  if (printer.mode === 'TCP') return `TCP ${printer.host}:${printer.port}`;
+  if (printer.mode === 'CUPS') return `CUPS ${printer.name || 'printer queue'}`;
+  return printer.name || 'Windows printer queue';
+}
+
+function printerSavedMessage(values) {
+  if (values.TSC_PRINTER_MODE === 'TCP') {
+    return `Direct TCP printer saved: ${values.TSC_PRINTER_HOST}:${values.TSC_PRINTER_PORT}. Use Test TSC to verify the printer.`;
+  }
+  if (values.TSC_PRINTER_MODE === 'CUPS') {
+    return `CUPS printer saved: ${values.TSC_PRINTER_NAME}. Use Test TSC to verify the printer.`;
+  }
+  return `Windows printer saved: ${values.TSC_PRINTER_NAME}. Use Test TSC to verify the printer.`;
 }
 
 async function resolveLabelPrinter(force = false) {
@@ -613,7 +652,8 @@ function renderSetup(res, { repair = false, error = null } = {}) {
     title: repair ? 'Repair ERP connection' : 'Shop setup',
     repair,
     error,
-    defaults: setupDefaults()
+    defaults: setupDefaults(),
+    printerPlatform: printerPlatformName()
   });
 }
 
@@ -812,8 +852,7 @@ app.get('/business-settings', requireLoopback, async (req, res, next) => {
   try {
     res.render('business-settings', {
       title: 'Business settings',
-      settings: await getBusinessSettings(prisma, { fresh: true }),
-      printer: configuredLabelPrinter()
+      settings: await getBusinessSettings(prisma, { fresh: true })
     });
   } catch (error) { next(error); }
 });
@@ -836,6 +875,19 @@ app.post('/business-settings', requireLoopback, async (req, res) => {
     if (!/^[A-Z0-9]{1,8}$/.test(invoicePrefix)) throw new Error('Invoice prefix must contain 1 to 8 English letters or numbers.');
     const signature = signatureFromDataUrl(req.body.signatureData);
     const removeSignature = req.body.removeSignature === 'on';
+    // Printer and label controls now live in the dedicated Printer setup flow.
+    // Preserve existing label values when older clients submit this form
+    // without those fields, while still accepting them from older builds.
+    const existingSettings = await getBusinessSettings(prisma, { fresh: true });
+    const labelSetting = (value, fallback, label, minimum, maximum, integer = false) => (
+      value === undefined || value === '' ? fallback : boundedSetting(value, label, minimum, maximum, integer)
+    );
+    const labelShopName = (optionalText(req.body.labelShopName, 80) || existingSettings.labelShopName || shopName).toUpperCase();
+    const labelWidthMm = labelSetting(req.body.labelWidthMm, existingSettings.labelWidthMm, 'Label width', 20, 120);
+    const labelHeightMm = labelSetting(req.body.labelHeightMm, existingSettings.labelHeightMm, 'Label height', 8, 100);
+    const labelGapMm = labelSetting(req.body.labelGapMm, existingSettings.labelGapMm, 'Label gap', 0, 20);
+    const labelSpeed = labelSetting(req.body.labelSpeed, existingSettings.labelSpeed, 'Label speed', 1, 6, true);
+    const labelDensity = labelSetting(req.body.labelDensity, existingSettings.labelDensity, 'Label density', 0, 15, true);
     await prisma.businessSettings.upsert({
       where: { id: 1 },
       create: {
@@ -852,12 +904,12 @@ app.post('/business-settings', requireLoopback, async (req, res) => {
           financialYearStartMonth: boundedSetting(req.body.financialYearStartMonth, 'Financial-year start month', 1, 12, true),
           defaultGstRate: boundedSetting(req.body.defaultGstRate, 'Default GST rate', 0, 100),
           defaultHsnCode: optionalText(req.body.defaultHsnCode, 50)?.toUpperCase() || null,
-          labelShopName: (optionalText(req.body.labelShopName, 80) || shopName).toUpperCase(),
-          labelWidthMm: boundedSetting(req.body.labelWidthMm, 'Label width', 20, 120),
-          labelHeightMm: boundedSetting(req.body.labelHeightMm, 'Label height', 8, 100),
-          labelGapMm: boundedSetting(req.body.labelGapMm, 'Label gap', 0, 20),
-          labelSpeed: boundedSetting(req.body.labelSpeed, 'Label speed', 1, 6, true),
-          labelDensity: boundedSetting(req.body.labelDensity, 'Label density', 0, 15, true),
+          labelShopName,
+          labelWidthMm,
+          labelHeightMm,
+          labelGapMm,
+          labelSpeed,
+          labelDensity,
           ...(signature || {})
       },
       update: {
@@ -873,30 +925,17 @@ app.post('/business-settings', requireLoopback, async (req, res) => {
           financialYearStartMonth: boundedSetting(req.body.financialYearStartMonth, 'Financial-year start month', 1, 12, true),
           defaultGstRate: boundedSetting(req.body.defaultGstRate, 'Default GST rate', 0, 100),
           defaultHsnCode: optionalText(req.body.defaultHsnCode, 50)?.toUpperCase() || null,
-          labelShopName: (optionalText(req.body.labelShopName, 80) || shopName).toUpperCase(),
-          labelWidthMm: boundedSetting(req.body.labelWidthMm, 'Label width', 20, 120),
-          labelHeightMm: boundedSetting(req.body.labelHeightMm, 'Label height', 8, 100),
-          labelGapMm: boundedSetting(req.body.labelGapMm, 'Label gap', 0, 20),
-          labelSpeed: boundedSetting(req.body.labelSpeed, 'Label speed', 1, 6, true),
-          labelDensity: boundedSetting(req.body.labelDensity, 'Label density', 0, 15, true),
+          labelShopName,
+          labelWidthMm,
+          labelHeightMm,
+          labelGapMm,
+          labelSpeed,
+          labelDensity,
           ...(removeSignature ? { signatureImage: null, signatureMimeType: null } : (signature || {}))
       }
     });
-    let printerError = null;
-    try {
-      const printerValues = updatePrinterConfiguration({ configPath, currentEnv: process.env, form: req.body });
-      Object.assign(process.env, printerValues);
-    } catch (error) {
-      // Business identity/invoice settings are independent of label-printer
-      // configuration. Keep the successful database update and report the
-      // printer failure so it can be corrected from Printer setup later.
-      printerError = error;
-    }
     clearBusinessSettingsCache();
-    if (printerError) {
-      return redirectWith(res, '/business-settings', 'error', `Business settings saved, but printer settings could not be saved: ${printerError.message || printerError}`);
-    }
-    redirectWith(res, '/business-settings', 'message', 'Business, invoice and label settings saved.');
+    redirectWith(res, '/business-settings', 'message', 'Business and invoice settings saved.');
   } catch (error) {
     redirectWith(res, '/business-settings', 'error', error.message || 'Could not save business settings.');
   }
@@ -928,7 +967,7 @@ app.post('/network-setup', requireLoopback, async (req, res, next) => {
 });
 
 app.get('/printer-setup', requireLoopback, (req, res) => {
-  res.render('printer-setup', { title: 'Barcode printer setup', printer: configuredLabelPrinter() });
+  res.render('printer-setup', { title: 'Barcode printer setup', printer: configuredLabelPrinter(), printerPlatform: printerPlatformName() });
 });
 
 app.post('/printer-setup', requireLoopback, (req, res) => {
@@ -936,9 +975,7 @@ app.post('/printer-setup', requireLoopback, (req, res) => {
   try {
     const values = updatePrinterConfiguration({ configPath, currentEnv: process.env, form: req.body });
     Object.assign(process.env, values);
-    redirectWith(res, returnTo, 'message', values.TSC_PRINTER_MODE === 'TCP'
-      ? `Direct TCP printer saved: ${values.TSC_PRINTER_HOST}:${values.TSC_PRINTER_PORT}. Use Test TSC to verify the printer.`
-      : `Windows printer saved: ${values.TSC_PRINTER_NAME}. Use Test TSC to verify the printer.`);
+    redirectWith(res, returnTo, 'message', printerSavedMessage(values));
   } catch (error) {
     redirectWith(res, returnTo, 'error', error.message || 'Could not save barcode printer settings.');
   }
@@ -1142,7 +1179,7 @@ app.get('/inventory', async (req, res, next) => {
     });
     const printerStatus = await resolveLabelPrinter(req.query.checkPrinter === '1');
     const printerTransport = configuredLabelPrinter();
-    res.render('inventory/index', { title: 'Inventory', products, filters, pagination, printerName: printerStatus.name || printerTransport.name, printerStatus, printerTransport });
+    res.render('inventory/index', { title: 'Inventory', products, filters, pagination, printerName: printerStatus.name || printerTransport.name, printerStatus, printerTransport, printerPlatform: printerPlatformName() });
   } catch (error) { next(error); }
 });
 
@@ -1232,12 +1269,12 @@ app.post('/api/inventory/batch-remove', express.json(), async (req, res, next) =
 app.post('/labels/test-print', async (req, res) => {
   try {
     const printerTransport = configuredLabelPrinter();
-    if (printerTransport.mode === 'WINDOWS' && !printerTransport.name) {
-      throw new Error('Set the installed Windows printer name before sending labels.');
+    if (printerNeedsQueueName(printerTransport) && !printerTransport.name) {
+      throw new Error(printerTransport.mode === 'CUPS'
+        ? 'Set the installed CUPS printer queue before sending labels.'
+        : 'Set the installed Windows printer name before sending labels.');
     }
-    const printerName = printerTransport.mode === 'TCP'
-      ? `TCP ${printerTransport.host}:${printerTransport.port}`
-      : printerTransport.name;
+    const printerName = printerDisplayName(printerTransport);
     const tspl = buildTsplJob([{ product: {
       metal: 'GOLD', barcode: 'TSC TEST', name: 'PRINTER TEST',
       grossWeight: 0, stoneWeight: 0, netWeight: 0
@@ -1289,13 +1326,14 @@ app.post('/labels/print', express.json(), async (req, res, next) => {
       return redirectWith(res, '/inventory', 'error', 'Select at least one inventory item to print labels.');
     }
     const printerTransport = configuredLabelPrinter();
-    if (printerTransport.mode === 'WINDOWS' && !printerTransport.name) {
-      if (isJson) return res.status(400).json({ error: 'Set the installed Windows printer name before sending labels.' });
-      return redirectWith(res, '/inventory', 'error', 'Set the installed Windows printer name before sending labels.');
+    if (printerNeedsQueueName(printerTransport) && !printerTransport.name) {
+      const message = printerTransport.mode === 'CUPS'
+        ? 'Set the installed CUPS printer queue before sending labels.'
+        : 'Set the installed Windows printer name before sending labels.';
+      if (isJson) return res.status(400).json({ error: message });
+      return redirectWith(res, '/inventory', 'error', message);
     }
-    const printerName = printerTransport.mode === 'TCP'
-      ? `TCP ${printerTransport.host}:${printerTransport.port}`
-      : printerTransport.name;
+    const printerName = printerDisplayName(printerTransport);
     const products = await prisma.product.findMany({
       where: { id: { in: requests.map((row) => row.id) }, status: 'AVAILABLE', quantity: 1 }
     });
@@ -2098,10 +2136,15 @@ app.get('/api/customers/phone/:phone', async (req, res, next) => {
 app.get('/api/customers/search', async (req, res, next) => {
   try {
     const q = String(req.query.q || '').trim();
-    if (q.length < 2) return res.json({ customers: [] });
+    const namesOnly = req.query.namesOnly === '1' || req.query.mode === 'name';
+    // Name autocomplete should respond from the very first character.  The
+    // result is still capped below, so short queries remain bounded while
+    // allowing the shared picker to feel immediate in every customer field.
+    if (q.length < 1) return res.json({ customers: [] });
+    const nameFilter = q.length === 1 ? { name: { startsWith: q } } : { name: { contains: q } };
     const customers = await prisma.customer.findMany({
-      where: { OR: [
-        { name: { contains: q } },
+      where: namesOnly ? nameFilter : { OR: [
+        nameFilter,
         { phone: { contains: normalizePhone(q) || q } },
         { email: { contains: q } }
       ] },
@@ -3800,7 +3843,10 @@ app.post('/suppliers/merge-duplicates', async (req, res) => {
 app.get('/api/suppliers/search', async (req, res) => {
   try {
     const q = supplierText(req.query.q);
-    if (q.length < 2) return res.json({ suppliers: [] });
+    // A single character is enough to begin useful supplier suggestions in
+    // the register and directory search fields. Keep the result capped so
+    // this remains a light-weight lookup while the user is typing.
+    if (q.length < 1) return res.json({ suppliers: [] });
     const suppliers = await prisma.supplier.findMany({
       where: { OR: [{ name: { contains: q } }, { phone: { contains: q } }, { gstin: { contains: q } }] },
       orderBy: { name: 'asc' }, take: 12
@@ -4459,7 +4505,10 @@ app.get('/reports/stock', async (req, res, next) => {
         ...productSearchClauses({ itemName, weight, barcode })
       ]
     };
-    const totalItems = await prisma.product.count({ where: stockWhere });
+    const [totalItems, stockTotals] = await Promise.all([
+      prisma.product.count({ where: stockWhere }),
+      prisma.product.aggregate({ where: stockWhere, _sum: { quantity: true, grossWeight: true, netWeight: true } })
+    ]);
     const pagination = paginationFor(req, totalItems, req.query.page, 100);
     const products = await prisma.product.findMany({
       where: stockWhere,
@@ -4468,7 +4517,12 @@ app.get('/reports/stock', async (req, res, next) => {
       skip: (pagination.page - 1) * pagination.pageSize,
       take: pagination.pageSize
     });
-    res.render('reports/stock', { title: 'Stock report', products, pagination, filters: { itemName, weight, barcode, metal, category, location, from: fromKey, to: toKey } });
+    const summary = {
+      pieces: Number(stockTotals._sum.quantity || 0),
+      grossWeight: Number(stockTotals._sum.grossWeight || 0),
+      netWeight: Number(stockTotals._sum.netWeight || 0)
+    };
+    res.render('reports/stock', { title: 'Stock report', products, pagination, summary, filters: { itemName, weight, barcode, metal, category, location, from: fromKey, to: toKey } });
   } catch (error) { next(error); }
 });
 
@@ -4489,6 +4543,30 @@ app.get('/reports/stock-movements', async (req, res, next) => {
         { product: { name: { contains: q } } }, { product: { purity: { contains: q } } }
       ] } : {})
     };
+    // Keep movement totals independent of pagination. The register displays
+    // the absolute quantity/weight affected by each movement, so aggregate
+    // those same values across every row matching the active filters.
+    const movementLike = q ? `%${q}%` : null;
+    const movementSummaryRows = await prisma.$queryRaw`
+      SELECT
+        COALESCE(SUM(ABS(sm.quantity)), 0) AS pieces,
+        COALESCE(SUM(ABS(sm.netWeight * sm.quantity)), 0) AS netWeight
+      FROM \`StockMovement\` sm
+      LEFT JOIN \`Product\` p ON p.id = sm.productId
+      WHERE sm.createdAt >= ${from} AND sm.createdAt <= ${to}
+        ${metal ? Prisma.sql`AND sm.productMetal = ${metal}` : Prisma.empty}
+        ${type ? Prisma.sql`AND sm.type = ${type}` : Prisma.empty}
+        ${movementLike ? Prisma.sql`AND (
+          sm.productBarcode LIKE ${movementLike}
+          OR sm.productName LIKE ${movementLike}
+          OR sm.productPurity LIKE ${movementLike}
+          OR sm.note LIKE ${movementLike}
+          OR p.barcode LIKE ${movementLike}
+          OR p.sku LIKE ${movementLike}
+          OR p.name LIKE ${movementLike}
+          OR p.purity LIKE ${movementLike}
+        )` : Prisma.empty}
+    `;
     const totalItems = await prisma.stockMovement.count({ where: movementWhere });
     const pagination = paginationFor(req, totalItems, req.query.page, 200);
     const movementRows = await prisma.stockMovement.findMany({
@@ -4512,8 +4590,14 @@ app.get('/reports/stock-movements', async (req, res, next) => {
         netWeight: currentProduct?.netWeight ?? movement.netWeight
       };
     });
+    const movementTotals = movementSummaryRows?.[0] || {};
+    const summary = {
+      movementCount: totalItems,
+      pieces: Number(movementTotals.pieces || 0),
+      netWeight: Number(movementTotals.netWeight || 0)
+    };
     res.render('reports/stock-movements', {
-      title: 'Stock movement report', movements, pagination,
+      title: 'Stock movement report', movements, pagination, summary,
       filters: { from: fromKey, to: toKey, q, metal, type }
     });
   } catch (error) { next(error); }
@@ -4556,6 +4640,26 @@ app.get('/reports/balance-register', async (req, res, next) => {
       ) AS balance_rows
     `;
     const totalItems = Number(countRows[0]?.total || 0);
+    const summaryRows = await prisma.$queryRaw`
+      SELECT
+        COUNT(*) AS customerCount,
+        COALESCE(SUM(balance), 0) AS totalBalance,
+        COALESCE(SUM(CASE WHEN balance > 0.005 THEN balance ELSE 0 END), 0) AS totalDue
+      FROM (
+        SELECT c.id, COALESCE(SUM(l.amount), 0) AS balance
+        FROM \`Customer\` c
+        LEFT JOIN \`CustomerLedger\` l ON l.customerId = c.id ${dateJoinClause}
+        ${searchClause}
+        GROUP BY c.id
+        ${balanceClause}
+      ) AS balance_summary
+    `;
+    const balanceSummaryRow = summaryRows?.[0] || {};
+    const summary = {
+      customerCount: Number(balanceSummaryRow.customerCount || 0),
+      totalBalance: Number(balanceSummaryRow.totalBalance || 0),
+      totalDue: Number(balanceSummaryRow.totalDue || 0)
+    };
     const pagination = paginationFor(req, totalItems, req.query.page, 100);
     const rows = await prisma.$queryRaw`
       SELECT
@@ -4575,7 +4679,7 @@ app.get('/reports/balance-register', async (req, res, next) => {
     const customers = rows.map((row) => ({
       id: Number(row.id), name: row.name, phone: row.phone || '', balance: Number(row.balance || 0), lastActivity: row.lastActivity || null
     }));
-    res.render('reports/balance-register', { title: 'Balance register', customers, pagination, filters: { q, state, from: fromKey, to: toKey } });
+    res.render('reports/balance-register', { title: 'Balance register', customers, pagination, summary, filters: { q, state, from: fromKey, to: toKey } });
   } catch (error) { next(error); }
 });
 
@@ -4956,6 +5060,10 @@ app.post('/schemes/:planId/enroll', async (req, res, next) => {
     const planId = Number(req.params.planId);
     const name = titleCase(req.body.customerName);
     const phone = normalizePhone(req.body.customerPhone);
+    const selectedCustomerId = req.body.customerId ? Number(req.body.customerId) : null;
+    if (req.body.customerId && (!Number.isInteger(selectedCustomerId) || selectedCustomerId <= 0)) {
+      return redirectWith(res, '/schemes', 'error', 'The selected customer is invalid. Search and select the customer again.');
+    }
     if (!name) return redirectWith(res, '/schemes', 'error', 'Enter the customer name.');
     if (phone && !validCustomerPhone(phone)) return redirectWith(res, '/schemes', 'error', 'Enter a valid customer mobile number (10 to 15 digits), or leave it blank.');
     const startDateInput = req.body.startDate || dateInput();
@@ -4969,9 +5077,16 @@ app.post('/schemes/:planId/enroll', async (req, res, next) => {
       const plan = await tx.schemePlan.findUniqueOrThrow({ where: { id: planId } });
       if (!plan.isActive || plan.deletionRequestedAt) throw new Error('This scheme plan is not available for enrollment.');
 
-      // Find or create the one shared customer profile. Do not silently
-      // overwrite established customer details while enrolling a scheme.
-      let customer = phone ? await tx.customer.findUnique({ where: { phone } }) : null;
+      // Use an explicitly selected profile first. If the operator changed the
+      // mobile number after selecting a name, discard the stale selection and
+      // resolve the new number instead of attaching the enrollment to the
+      // wrong person. Do not silently overwrite established customer details.
+      let customer = selectedCustomerId
+        ? await tx.customer.findUnique({ where: { id: selectedCustomerId } })
+        : null;
+      if (selectedCustomerId && !customer) throw new Error('The selected customer no longer exists. Search and select the customer again.');
+      if (customer?.phone && phone && customer.phone !== phone) customer = null;
+      if (!customer && phone) customer = await tx.customer.findUnique({ where: { phone } });
       if (!customer) {
         customer = await tx.customer.create({ data: { name, phone: phone || null } });
       }
@@ -5033,9 +5148,14 @@ app.post('/api/schemes/:planId/enroll-batch', express.json(), async (req, res) =
       const source = row && typeof row === 'object' ? row : {};
       const phone = normalizePhone(source.customerPhone ?? source.phone);
       const name = titleCase(source.customerName ?? source.name);
+      const customerId = source.customerId ? Number(source.customerId) : null;
+      if (source.customerId && (!Number.isInteger(customerId) || customerId <= 0)) {
+        throw new Error(`Row ${index + 1}: the selected customer is invalid. Search and select the customer again.`);
+      }
       if (phone && !validCustomerPhone(phone)) throw new Error(`Row ${index + 1}: enter a valid customer mobile number, or leave it blank.`);
       return {
         rowNumber: index + 1,
+        customerId,
         phone,
         name,
         startDate: sharedStartDate,
@@ -5058,7 +5178,12 @@ app.post('/api/schemes/:planId/enroll-batch', express.json(), async (req, res) =
         const chunkCreated = [];
         const installmentRows = [];
         for (const row of chunk) {
-          let customer = row.phone ? await tx.customer.findUnique({ where: { phone: row.phone } }) : null;
+          let customer = row.customerId
+            ? await tx.customer.findUnique({ where: { id: row.customerId } })
+            : null;
+          if (row.customerId && !customer) throw new Error(`Row ${row.rowNumber}: the selected customer no longer exists. Search and select the customer again.`);
+          if (customer?.phone && row.phone && customer.phone !== row.phone) customer = null;
+          if (!customer && row.phone) customer = await tx.customer.findUnique({ where: { phone: row.phone } });
           if (!customer) {
             if (!row.name) throw new Error(`Row ${row.rowNumber}: enter a customer name when no saved mobile profile is found.`);
             customer = await tx.customer.create({ data: { name: row.name, phone: row.phone || null } });

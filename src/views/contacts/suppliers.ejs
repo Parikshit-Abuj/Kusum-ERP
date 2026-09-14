@@ -4,8 +4,11 @@
 </header>
 <section class="panel register-panel">
   <div class="panel-heading"><div><h2>Supplier accounts</h2><p><%= pagination.totalItems %> supplier<%= pagination.totalItems === 1 ? '' : 's' %> saved</p></div></div>
-  <form class="search-bar" method="get" action="/suppliers">
-    <input name="q" value="<%= q || '' %>" placeholder="Search supplier, mobile, GSTIN or PAN">
+  <form class="search-bar supplier-directory-search" method="get" action="/suppliers">
+    <label>Supplier search
+      <input name="q" data-supplier-autocomplete data-supplier-autocomplete-mode="supplier-only" value="<%= q || '' %>" placeholder="Type a supplier name, mobile, GSTIN or PAN" autocomplete="off">
+      <small>Choose a saved supplier or search all contact details</small>
+    </label>
     <button class="button secondary" type="submit">Search</button>
     <% if (q) { %><a class="button ghost" href="/suppliers">Clear</a><% } %>
   </form>

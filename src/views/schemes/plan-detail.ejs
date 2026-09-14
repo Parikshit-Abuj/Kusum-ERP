@@ -84,7 +84,7 @@
     <div class="scheme-filter-controls">
       <% if (hasVisibleEnrollmentRecords) { %>
       <form method="get" action="/schemes/plans/<%= plan.id %>" id="schemeFiltersForm" class="scheme-filter-controls">
-        <input type="search" id="filterSearch" name="q" value="<%= schemeFilters.q %>" placeholder="Search customer…" autocomplete="off">
+        <input type="search" id="filterSearch" name="q" data-customer-autocomplete data-customer-autocomplete-mode="search" value="<%= schemeFilters.q %>" placeholder="Search customer…" autocomplete="off">
         <button type="submit" class="button secondary small">Search</button>
 
         <input type="hidden" id="filterMonth" name="month" value="<%= schemeFilters.month %>">
@@ -288,7 +288,7 @@
       <div>
         <p class="eyebrow">Fast enrollment · <%= plan.name %></p>
         <h2 id="schemeBulkEnrollTitle">Batch enroll customers</h2>
-        <p>Enter one customer per row. Existing mobile numbers use the saved customer profile.</p>
+        <p>Enter one customer per row. Start typing a name to select an existing profile; mobile lookup also works.</p>
       </div>
       <button class="modal-close-btn" type="button" data-scheme-bulk-enroll-close aria-label="Close batch enrollment">×</button>
     </header>
@@ -331,7 +331,7 @@
     </header>
     <div class="modal-body scheme-bulk-modal-body">
       <form class="scheme-bulk-cancel-filter" data-bulk-cancel-filter>
-        <label>Search customer or scheme document<input type="search" data-bulk-cancel-search placeholder="Name, mobile, or SCH number" autocomplete="off"></label>
+        <label>Search customer or scheme document<input type="search" data-bulk-cancel-search data-customer-autocomplete data-customer-autocomplete-mode="search" placeholder="Name, mobile, or SCH number" autocomplete="off"></label>
         <button type="submit" class="button secondary small">Search</button>
       </form>
       <div class="scheme-bulk-selection-bar">
@@ -373,7 +373,7 @@
     </header>
     <div class="modal-body scheme-bulk-modal-body">
       <form class="scheme-bulk-payment-filter" data-bulk-payment-filter>
-        <label>Search customer or scheme document<input type="search" data-bulk-payment-search placeholder="Name, mobile, or SCH number" autocomplete="off"></label>
+        <label>Search customer or scheme document<input type="search" data-bulk-payment-search data-customer-autocomplete data-customer-autocomplete-mode="search" placeholder="Name, mobile, or SCH number" autocomplete="off"></label>
         <label>Default month<select data-bulk-payment-month><option value="">Auto · next pending</option><% for (let month = 1; month <= Number(plan.durationMonths || 0); month += 1) { %><option value="<%= month %>">Month <%= month %></option><% } %></select></label>
         <button type="submit" class="button secondary small">Search</button>
       </form>
@@ -444,13 +444,16 @@
     </header>
     <form method="post" action="/schemes/<%= plan.id %>/enroll" id="enrollCustomerForm">
       <div class="modal-body" style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+        <input type="hidden" name="customerId" data-scheme-customer-id>
         <div class="pos-field">
           <label>Customer Mobile</label>
           <input name="customerPhone" inputmode="numeric" maxlength="15" placeholder="Optional mobile number" data-scheme-phone autocomplete="off" autofocus>
         </div>
-        <div class="pos-field">
+        <div class="pos-field scheme-name-field">
           <label>Customer Name *</label>
-          <input name="customerName" data-uppercase required placeholder="Full name" data-scheme-name>
+          <input name="customerName" data-uppercase required placeholder="Start typing a customer name" data-scheme-name autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="schemeCustomerNameResults">
+          <div class="scheme-customer-name-results" id="schemeCustomerNameResults" data-scheme-customer-results role="listbox" hidden></div>
+          <small class="scheme-name-hint" data-scheme-name-hint>Type a name to find an existing customer, or continue to create a new profile.</small>
         </div>
         <div class="form-grid two compact-fields">
           <div class="pos-field">
@@ -470,6 +473,18 @@
     </form>
   </div>
 </div>
+
+<style>
+  .scheme-name-field { position: relative; }
+  .scheme-customer-name-results { position: absolute; z-index: 40; top: calc(100% - 2px); left: 0; right: 0; max-height: 220px; overflow-y: auto; border: 1px solid #dfd4c3; border-radius: 9px; background: #fff; box-shadow: 0 12px 28px rgba(46, 33, 15, .16); }
+  .scheme-customer-name-option { display: flex; width: 100%; flex-direction: column; align-items: flex-start; gap: 2px; padding: 9px 11px; border: 0; border-bottom: 1px solid #f0ebe4; background: #fff; color: #2b2319; cursor: pointer; text-align: left; font: inherit; }
+  .scheme-customer-name-option:last-child { border-bottom: 0; }
+  .scheme-customer-name-option:hover, .scheme-customer-name-option:focus, .scheme-customer-name-option.is-highlighted { background: #fff8eb; outline: none; }
+  .scheme-customer-name-option strong { font-size: 12.5px; }
+  .scheme-customer-name-option small, .scheme-customer-name-empty { color: #837665; font-size: 11.5px; }
+  .scheme-customer-name-empty { padding: 11px; }
+  .scheme-name-hint { display: block; margin-top: 5px; color: #7a6d5e; font-size: 11px; }
+</style>
 
 <!-- Edit Plan Modal Popup -->
 <div class="modal-overlay scheme-edit-modal" id="editPlanModal" style="display:none;" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="editPlanModalTitle">
@@ -599,28 +614,136 @@
   }
 })();
 
-// Phone lookup for customer name in enrollment
-(function initPhoneLookup() {
-  const phoneInput = document.querySelector('[data-scheme-phone]');
-  if (!phoneInput) return;
-  let timer = null;
-  phoneInput.addEventListener('input', () => {
-    clearTimeout(timer);
-    const digits = (phoneInput.value || '').replace(/\D/g, '');
-    if (digits.length >= 10 && digits.length <= 15) {
-      timer = setTimeout(async () => {
-        try {
-          const resp = await fetch(`/api/customers/phone/${encodeURIComponent(digits)}`);
-          if (!resp.ok) return;
-          const data = await resp.json();
-          if (data.found && data.customer) {
-            const form = phoneInput.closest('form');
-            const nameInput = form?.querySelector('[data-scheme-name]');
-            if (nameInput && !nameInput.value) nameInput.value = String(data.customer.name || '').toUpperCase();
-          }
-        } catch (_) {}
-      }, 350);
+// Customer lookup for enrollment. Name suggestions begin with the first
+// character; selecting one carries its exact profile ID so a customer with no
+// mobile number cannot be accidentally duplicated.
+(function initSchemeCustomerLookup() {
+  const form = document.getElementById('enrollCustomerForm');
+  if (!form) return;
+  const phoneInput = form.querySelector('[data-scheme-phone]');
+  const nameInput = form.querySelector('[data-scheme-name]');
+  const customerIdInput = form.querySelector('[data-scheme-customer-id]');
+  const results = form.querySelector('[data-scheme-customer-results]');
+  const hint = form.querySelector('[data-scheme-name-hint]');
+  if (!phoneInput || !nameInput || !customerIdInput || !results) return;
+
+  let nameTimer = null;
+  let phoneTimer = null;
+  let nameController = null;
+  let highlighted = -1;
+
+  const hideResults = () => {
+    results.replaceChildren();
+    results.hidden = true;
+    nameInput.setAttribute('aria-expanded', 'false');
+    highlighted = -1;
+  };
+
+  const renderResults = (customers) => {
+    results.replaceChildren();
+    const list = Array.isArray(customers) ? customers : [];
+    if (!list.length) {
+      const empty = document.createElement('div');
+      empty.className = 'scheme-customer-name-empty';
+      empty.textContent = 'No existing customer matches this name';
+      results.appendChild(empty);
+      results.hidden = false;
+      nameInput.setAttribute('aria-expanded', 'true');
+      return;
     }
+    const fragment = document.createDocumentFragment();
+    highlighted = -1;
+    list.forEach((customer) => {
+      const option = document.createElement('button');
+      option.type = 'button';
+      option.className = 'scheme-customer-name-option';
+      option.setAttribute('role', 'option');
+      option.dataset.customerId = String(customer.id || '');
+      const name = document.createElement('strong');
+      name.textContent = String(customer.name || 'Unnamed customer');
+      const phone = document.createElement('small');
+      phone.textContent = customer.phone ? String(customer.phone) : 'Mobile not saved';
+      option.append(name, phone);
+      option.addEventListener('click', () => {
+        customerIdInput.value = String(customer.id || '');
+        nameInput.value = String(customer.name || '').toUpperCase();
+        phoneInput.value = String(customer.phone || '').replace(/\D/g, '');
+        if (hint) hint.textContent = 'Existing customer selected. Their saved profile will be used for this scheme.';
+        hideResults();
+      });
+      fragment.appendChild(option);
+    });
+    results.appendChild(fragment);
+    results.hidden = false;
+    nameInput.setAttribute('aria-expanded', 'true');
+  };
+
+  nameInput.addEventListener('input', () => {
+    // Any edit after choosing a suggestion means the operator may be entering
+    // a different person; clear the exact-profile link and optional mobile.
+    if (customerIdInput.value) {
+      customerIdInput.value = '';
+      phoneInput.value = '';
+      if (hint) hint.textContent = 'Type a name to find an existing customer, or continue to create a new profile.';
+    }
+    clearTimeout(nameTimer);
+    nameController?.abort();
+    const query = nameInput.value.trim();
+    const queryKey = query.toLocaleLowerCase();
+    if (!query) return hideResults();
+    nameTimer = setTimeout(async () => {
+      nameController = new AbortController();
+      try {
+        const response = await fetch(`/api/customers/search?q=${encodeURIComponent(query.toLocaleUpperCase())}&namesOnly=1`, { signal: nameController.signal });
+        const data = await response.json();
+        if (nameInput.value.trim().toLocaleLowerCase() === queryKey) renderResults(data.customers || []);
+      } catch (error) {
+        if (error.name !== 'AbortError') hideResults();
+      }
+    }, 180);
+  });
+
+  nameInput.addEventListener('keydown', (event) => {
+    const options = Array.from(results.querySelectorAll('.scheme-customer-name-option'));
+    if (event.key === 'ArrowDown' && options.length) {
+      event.preventDefault();
+      highlighted = Math.min(highlighted + 1, options.length - 1);
+      options.forEach((option, index) => option.classList.toggle('is-highlighted', index === highlighted));
+      options[highlighted]?.scrollIntoView({ block: 'nearest' });
+    } else if (event.key === 'ArrowUp' && options.length) {
+      event.preventDefault();
+      highlighted = Math.max(highlighted - 1, 0);
+      options.forEach((option, index) => option.classList.toggle('is-highlighted', index === highlighted));
+      options[highlighted]?.scrollIntoView({ block: 'nearest' });
+    } else if (event.key === 'Enter' && highlighted >= 0 && options[highlighted]) {
+      event.preventDefault();
+      options[highlighted].click();
+    } else if (event.key === 'Escape') {
+      hideResults();
+    }
+  });
+
+  phoneInput.addEventListener('input', () => {
+    customerIdInput.value = '';
+    clearTimeout(phoneTimer);
+    const digits = (phoneInput.value || '').replace(/\D/g, '');
+    if (digits.length < 10 || digits.length > 15) return;
+    phoneTimer = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/customers/phone/${encodeURIComponent(digits)}`);
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.found && data.customer) {
+          customerIdInput.value = String(data.customer.id);
+          if (!nameInput.value.trim()) nameInput.value = String(data.customer.name || '').toUpperCase();
+          if (hint) hint.textContent = 'Existing customer found by mobile. Their saved profile will be used for this scheme.';
+        }
+      } catch (_) {}
+    }, 350);
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!form.contains(event.target)) hideResults();
   });
 })();
 
@@ -740,9 +863,13 @@
   const wirePhoneLookup = (row) => {
     const phoneInput = row.querySelector('[data-bulk-phone]');
     const nameInput = row.querySelector('[data-bulk-name]');
+    const customerIdInput = row.querySelector('[data-bulk-customer-id]');
     if (!phoneInput || !nameInput) return;
     let timer = null;
-    phoneInput.addEventListener('input', updateCount);
+    phoneInput.addEventListener('input', () => {
+      if (customerIdInput) customerIdInput.value = '';
+      updateCount();
+    });
     phoneInput.addEventListener('blur', () => {
       clearTimeout(timer);
       const digits = phoneInput.value.replace(/\D/g, '');
@@ -753,6 +880,7 @@
           if (!response.ok) return;
           const data = await response.json();
           if (data.found && data.customer && !nameInput.value.trim()) {
+            if (customerIdInput) customerIdInput.value = String(data.customer.id || '');
             nameInput.value = String(data.customer.name || '').toUpperCase();
             updateCount();
           }
@@ -761,13 +889,124 @@
     });
   };
 
+  const wireNameLookup = (row) => {
+    const nameInput = row.querySelector('[data-bulk-name]');
+    const phoneInput = row.querySelector('[data-bulk-phone]');
+    const customerIdInput = row.querySelector('[data-bulk-customer-id]');
+    const results = row.querySelector('[data-bulk-name-results]');
+    if (!nameInput || !phoneInput || !customerIdInput || !results) return;
+    let timer = null;
+    let controller = null;
+    let highlighted = -1;
+
+    const positionResults = () => {
+      if (results.hidden) return;
+      const rect = nameInput.getBoundingClientRect();
+      const height = Math.min(220, results.scrollHeight || 220);
+      const top = window.innerHeight - rect.bottom < height && rect.top > height
+        ? rect.top - height - 3
+        : rect.bottom + 3;
+      results.style.left = `${rect.left}px`;
+      results.style.top = `${top}px`;
+      results.style.width = `${rect.width}px`;
+    };
+    const hideResults = () => {
+      results.replaceChildren();
+      results.hidden = true;
+      nameInput.setAttribute('aria-expanded', 'false');
+      highlighted = -1;
+    };
+    const selectCustomer = (customer) => {
+      customerIdInput.value = String(customer.id || '');
+      nameInput.value = String(customer.name || '').toUpperCase();
+      phoneInput.value = String(customer.phone || '').replace(/\D/g, '');
+      hideResults();
+      updateCount();
+    };
+    const renderResults = (customers) => {
+      results.replaceChildren();
+      const list = Array.isArray(customers) ? customers : [];
+      if (!list.length) {
+        const empty = document.createElement('div');
+        empty.className = 'scheme-bulk-name-empty';
+        empty.textContent = 'No existing customer matches this name';
+        results.appendChild(empty);
+      } else {
+        const fragment = document.createDocumentFragment();
+        list.forEach((customer) => {
+          const option = document.createElement('button');
+          option.type = 'button';
+          option.className = 'scheme-bulk-name-option';
+          option.setAttribute('role', 'option');
+          const name = document.createElement('strong');
+          name.textContent = String(customer.name || 'Unnamed customer');
+          const phone = document.createElement('small');
+          phone.textContent = customer.phone ? String(customer.phone) : 'Mobile not saved';
+          option.append(name, phone);
+          option.addEventListener('mousedown', (event) => event.preventDefault());
+          option.addEventListener('click', () => selectCustomer(customer));
+          fragment.appendChild(option);
+        });
+        results.appendChild(fragment);
+      }
+      highlighted = -1;
+      results.hidden = false;
+      nameInput.setAttribute('aria-expanded', 'true');
+      positionResults();
+    };
+
+    nameInput.addEventListener('input', () => {
+      if (customerIdInput.value) {
+        customerIdInput.value = '';
+        phoneInput.value = '';
+      }
+      clearTimeout(timer);
+      controller?.abort();
+      const query = nameInput.value.trim();
+      const queryKey = query.toLocaleLowerCase();
+      if (!query) return hideResults();
+      timer = setTimeout(async () => {
+        controller = new AbortController();
+        try {
+          const response = await fetch(`/api/customers/search?q=${encodeURIComponent(query.toLocaleUpperCase())}&namesOnly=1`, { signal: controller.signal });
+          const data = await response.json();
+          if (nameInput.value.trim().toLocaleLowerCase() === queryKey) renderResults(data.customers || []);
+        } catch (error) {
+          if (error.name !== 'AbortError') hideResults();
+        }
+      }, 180);
+    });
+    nameInput.addEventListener('keydown', (event) => {
+      const options = Array.from(results.querySelectorAll('.scheme-bulk-name-option'));
+      if (event.key === 'ArrowDown' && options.length) {
+        event.preventDefault();
+        highlighted = Math.min(highlighted + 1, options.length - 1);
+        options.forEach((option, index) => option.classList.toggle('is-highlighted', index === highlighted));
+        options[highlighted]?.scrollIntoView({ block: 'nearest' });
+      } else if (event.key === 'ArrowUp' && options.length) {
+        event.preventDefault();
+        highlighted = Math.max(highlighted - 1, 0);
+        options.forEach((option, index) => option.classList.toggle('is-highlighted', index === highlighted));
+        options[highlighted]?.scrollIntoView({ block: 'nearest' });
+      } else if (event.key === 'Enter' && highlighted >= 0 && options[highlighted]) {
+        event.preventDefault();
+        options[highlighted].click();
+      } else if (event.key === 'Escape') {
+        hideResults();
+      }
+    });
+    nameInput.addEventListener('blur', () => setTimeout(hideResults, 150));
+    modal.querySelector('.scheme-bulk-table-wrap')?.addEventListener('scroll', positionResults);
+    window.addEventListener('resize', positionResults);
+  };
+
   const addRow = (values = {}) => {
     rowNumber += 1;
     const row = document.createElement('tr');
     row.innerHTML = `
       <td class="scheme-bulk-row-number">${rowNumber}</td>
       <td><input type="text" inputmode="numeric" maxlength="15" placeholder="Optional" data-bulk-phone autocomplete="off"></td>
-      <td><input type="text" placeholder="Full name" data-bulk-name autocomplete="off"></td>
+      <td><div class="scheme-bulk-name-control"><input type="text" placeholder="Start typing a name" data-bulk-name autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false"><input type="hidden" data-bulk-customer-id><div class="scheme-bulk-name-results" data-bulk-name-results role="listbox" hidden></div></div></td>
       <td><input type="text" placeholder="Optional" data-bulk-notes autocomplete="off"></td>
       <td><button type="button" class="scheme-bulk-remove" data-bulk-remove-row aria-label="Remove row">×</button></td>`;
     row.querySelector('[data-bulk-phone]').value = values.phone || '';
@@ -782,6 +1021,7 @@
       updateCount();
     });
     wirePhoneLookup(row);
+    wireNameLookup(row);
     tbody.appendChild(row);
     updateCount();
   };
@@ -818,6 +1058,7 @@
     for (const [index, row] of [...tbody.querySelectorAll('tr')].entries()) {
       const customerPhone = row.querySelector('[data-bulk-phone]')?.value.trim() || '';
       const customerName = row.querySelector('[data-bulk-name]')?.value.trim() || '';
+      const customerId = Number(row.querySelector('[data-bulk-customer-id]')?.value || 0);
       const notes = row.querySelector('[data-bulk-notes]')?.value.trim() || '';
       if (!customerPhone && !customerName) continue;
       const digits = customerPhone.replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '');
@@ -826,7 +1067,7 @@
         row.querySelector('[data-bulk-phone]')?.focus();
         return;
       }
-      customers.push({ customerPhone: digits, customerName, notes });
+      customers.push({ customerId: customerId > 0 ? customerId : null, customerPhone: digits, customerName, notes });
     }
     if (!customers.length) return setFeedback('Add at least one customer name or mobile number.', true);
     submitButton.disabled = true;

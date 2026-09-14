@@ -23,7 +23,7 @@
         </div>
       </div>
       <div class="cust-new-grid" data-new-customer-fields hidden>
-        <div class="pos-field"><label>Customer Name *</label><input name="customerName" disabled data-customer-name data-uppercase placeholder="Customer full name"></div>
+        <div class="pos-field"><label>Customer Name *</label><input name="customerName" disabled data-customer-name data-customer-autocomplete data-uppercase placeholder="Customer full name"></div>
         <div class="pos-field"><label>PAN No. (optional)</label><input name="customerPan" disabled data-customer-pan placeholder="e.g. ABCDE1234F" maxlength="10" autocomplete="off" style="text-transform:uppercase;"></div>
         <div class="pos-field"><label>Email (optional)</label><input name="customerEmail" type="email" disabled data-customer-email placeholder="customer@gmail.com"></div>
         <div class="pos-field"><label>City / Address</label><input name="customerAddress" disabled data-customer-address data-uppercase placeholder="City / Area"></div>
@@ -37,7 +37,7 @@
       <label>Pledge date *<input name="pledgeDate" type="date" required value="<%= dateInput() %>"></label>
       <label>Return due date<input name="dueDate" type="date"></label>
       <label>Metal *<select name="metal"><option value="GOLD">Gold</option><option value="SILVER">Silver</option></select></label>
-      <label>Item description *<input name="itemDescription" data-title-case required placeholder="e.g. Gold chain"></label>
+      <label>Item description *<input name="itemDescription" data-title-case data-item-autocomplete required placeholder="e.g. Gold chain"></label>
       <label>Purity<input name="purity" placeholder="Write purity, e.g. 22K"></label>
       <label>Pieces *<input name="quantity" type="number" min="1" step="1" value="1" required></label>
       <label>Gross wt. (g)<input name="grossWeight" type="number" min="0" step="0.001" placeholder="Optional"></label>

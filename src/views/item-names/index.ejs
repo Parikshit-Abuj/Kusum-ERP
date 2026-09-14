@@ -14,7 +14,7 @@
     <form method="post" action="/item-names/add" id="addItemNameForm" style="display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap; width:100%;">
       <label>
         <span>Item name *</span>
-        <input name="name" data-uppercase required placeholder="e.g. Gold bridal necklace">
+        <input name="name" data-uppercase data-item-autocomplete required placeholder="e.g. Gold bridal necklace" autocomplete="off">
       </label>
       <label>
         <span>Category *</span>
@@ -29,14 +29,14 @@
 <section class="panel">
   <div class="panel-heading"><div><h2>All item names</h2><p><%= pager.totalItems %> registered name<%= pager.totalItems !== 1 ? 's' : '' %>.</p></div></div>
   <form class="search-bar" method="get" action="/item-names">
-    <input name="q" value="<%= q %>" placeholder="Search item name or category">
+    <input name="q" data-item-autocomplete data-item-autocomplete-mode="search" value="<%= q %>" placeholder="Search item name or category" autocomplete="off">
     <button class="button secondary small" type="submit">Search</button>
     <% if (q) { %><a class="button ghost small" href="/item-names">Clear</a><% } %>
   </form>
   <% if (allItems.length) { %>
     <% allItems.forEach((item) => { %>
     <form class="item-name-row" method="post" action="/item-names/<%= item.id %>">
-      <input name="name" value="<%= item.name %>" data-uppercase required placeholder="Item name">
+      <input name="name" value="<%= item.name %>" data-uppercase data-item-autocomplete required placeholder="Item name" autocomplete="off">
       <input name="category" value="<%= item.category %>" data-uppercase required placeholder="Category">
       <button class="button small ghost" type="submit">Save</button>
       <button class="button small ghost" type="submit" formaction="/item-names/<%= item.id %>/delete" onclick="return confirm('Delete this item name?')">✕</button>

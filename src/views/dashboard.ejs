@@ -38,6 +38,11 @@
     <strong class="<%= _stats.cashNet >= 0 ? 'success-text' : 'danger-text' %>"><%= money(_stats.cashNet) %></strong>
     <p><span>In</span> <%= money(_stats.cashIn) %> · <span>Out</span> <%= money(_stats.cashOut) %></p>
   </article>
+  <article class="overview-metric metric-receivables">
+    <div class="metric-heading"><span>Customer receivables</span><span class="metric-symbol"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#people"></use></svg></span></div>
+    <strong><%= money(_stats.customerDue) %></strong>
+    <p><a class="metric-link" href="/reports/balance-register">Open balance register →</a></p>
+  </article>
 </section>
 
 <div class="overview-grid">
@@ -64,10 +69,6 @@
   </section>
 
   <aside class="overview-side">
-    <section class="credit-summary">
-      <h2>Customer receivables</h2><strong><%= money(_stats.customerDue) %></strong>
-      <a href="/reports/balance-register"><span>Open balance register</span><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#arrow"></use></svg></a>
-    </section>
     <section class="panel">
       <div class="panel-heading"><h2>Stock by metal</h2><a class="text-link" href="/reports/stock" aria-label="Stock report">↗</a></div>
       <% if (_invByMetal.length) { %>

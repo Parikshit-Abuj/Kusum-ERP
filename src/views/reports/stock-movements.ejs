@@ -6,11 +6,17 @@
 <section class="panel report-filter-panel">
   <form class="report-filter-form" method="get">
     <label>From<input type="date" name="from" value="<%= filters.from %>"></label><label>To<input type="date" name="to" value="<%= filters.to %>"></label>
-    <label>Search item / barcode<input name="q" value="<%= filters.q %>" placeholder="G 1, chain…"></label>
+    <label>Search item / barcode<input name="q" data-item-autocomplete data-item-autocomplete-mode="search" value="<%= filters.q %>" placeholder="G 1, chain…" autocomplete="off"></label>
     <label>Metal<select name="metal"><option value="">All metals</option><% ['GOLD','SILVER','PLATINUM','DIAMOND','OTHER'].forEach((value) => { %><option value="<%= value %>" <%= filters.metal === value ? 'selected' : '' %>><%= value %></option><% }) %></select></label>
     <label>Movement<select name="type"><option value="">All movements</option><% [['OPENING','Opening'],['SALE','Sale'],['ADJUSTMENT_IN','Adjustment in'],['ADJUSTMENT_OUT','Adjustment out']].forEach(([value,label]) => { %><option value="<%= value %>" <%= filters.type === value ? 'selected' : '' %>><%= label %></option><% }) %></select></label>
     <div class="report-filter-actions"><button class="button small" type="submit">Apply filters</button><a class="button ghost small" href="/reports/stock-movements">Reset</a></div>
   </form>
+</section>
+
+<section class="stats-grid report-register-summary" aria-label="Filtered movement totals">
+  <article class="stat-card accent-gold"><span class="stat-label">Movement rows</span><strong><%= summary.movementCount.toLocaleString('en-IN') %></strong><p>Matching history entries</p></article>
+  <article class="stat-card"><span class="stat-label">Pieces affected</span><strong><%= summary.pieces.toLocaleString('en-IN') %></strong><p>Inbound and outbound combined</p></article>
+  <article class="stat-card"><span class="stat-label">Net weight affected</span><strong><%= grams(summary.netWeight) %></strong><p>Absolute weight across matches</p></article>
 </section>
 
 <section class="panel">

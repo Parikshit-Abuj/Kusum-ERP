@@ -161,8 +161,8 @@
           <input name="description" required placeholder="e.g. Gold sale cash payment, shop rent">
         </label>
         <label>Customer (optional)
-          <input id="cbCustomerSearch" type="search" autocomplete="off" placeholder="Search name or mobile number…">
-          <select name="customerId" id="cbCustomer">
+          <input id="cbCustomerSearch" type="search" data-customer-autocomplete data-customer-autocomplete-mode="search" autocomplete="off" placeholder="Search name or mobile number…">
+          <select name="customerId" id="cbCustomer" data-customer-select>
             <option value="">No customer — general entry</option>
             <% customers.forEach(c => { %>
             <option value="<%= c.id %>"><%= c.name %><%= c.phone ? ` · ${c.phone}` : '' %></option>
@@ -210,43 +210,5 @@
     document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && entryModal.style.display === 'flex') closeEntryModal(); });
   }
 
-  const search = document.getElementById('cbCustomerSearch');
-  const select = document.getElementById('cbCustomer');
-  if (!search || !select) return;
-  let timer;
-  let controller;
-  const baseOption = () => {
-    const option = document.createElement('option');
-    option.value = '';
-    option.textContent = 'No customer — general entry';
-    return option;
-  };
-  search.addEventListener('input', () => {
-    clearTimeout(timer);
-    const query = search.value.trim();
-    if (query.length < 2) {
-      select.replaceChildren(baseOption());
-      return;
-    }
-    timer = setTimeout(async () => {
-      controller?.abort();
-      controller = new AbortController();
-      try {
-        const response = await fetch(`/api/customers/search?q=${encodeURIComponent(query)}`, { signal: controller.signal });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Could not search customers.');
-        const options = (data.customers || []).map((customer) => {
-          const option = document.createElement('option');
-          option.value = String(customer.id);
-          option.textContent = `${customer.name}${customer.phone ? ` · ${customer.phone}` : ''}`;
-          return option;
-        });
-        select.replaceChildren(baseOption(), ...options);
-        if (options.length === 1) select.value = options[0].value;
-      } catch (error) {
-        if (error.name !== 'AbortError') select.replaceChildren(baseOption());
-      }
-    }, 180);
-  });
 })();
 </script>

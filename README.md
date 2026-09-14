@@ -8,6 +8,14 @@ Use the generated `Kusum ERP-win32-x64` folder on the shop PC. Copy the entire f
 
 Before first use, install and start **MySQL Server** on the main database PC. For barcode labels, install the Windows driver for the **TSC TTP-244 Pro** and select its exact Windows printer name in the ERP. To update an installation, close the ERP and replace the entire old application folder; do not delete the MySQL database or `%LOCALAPPDATA%\Kusum Jewelers ERP` configuration folder.
 
+## Linux desktop package
+
+The first Linux target is Ubuntu/Debian 64-bit. On a Linux build host, run `npm install`, `npm run db:generate`, then `npm run package:linux`. The command creates a fresh `Kusum ERP-linux-x64` folder under `output/`. Copy the entire folder and run `./Kusum ERP`; Node.js is not required on the shop PC.
+
+Install MySQL Server on the main database PC and CUPS for USB or shared printers. In ERP printer setup, choose **CUPS printer / USB** and enter the exact CUPS queue name, or choose **Direct TCP / Ethernet** for a network TSPL printer. The Linux package uses the same database, migrations, PDFs, Excel exports, barcodes and LAN setup as the Windows package.
+
+To create a Debian/Ubuntu installer, run `npm run package:linux:deb`. It creates a fresh `kusum-erp_<version>_amd64.deb` installer under `output/`. Install it on Ubuntu/Debian with `sudo apt install ./kusum-erp_<version>_amd64.deb`; the application is installed under `/opt/kusum-erp` and a desktop-menu shortcut is added.
+
 ## Local setup
 
 1. Create a MySQL database named `kusum_erp`.

@@ -6,7 +6,7 @@
     <form method="get" action="/sales" id="salesFilterForm">
       <label>
         <span>Customer / Mobile / Invoice #</span>
-        <input type="text" name="q" value="<%= f.q || '' %>" placeholder="e.g. Ravi, 98200... or INV-0042" autocomplete="off">
+        <input type="text" name="q" data-customer-autocomplete data-customer-autocomplete-mode="search" value="<%= f.q || '' %>" placeholder="e.g. Ravi, 98200... or INV-0042" autocomplete="off">
       </label>
       <label>
         <span>From date</span>

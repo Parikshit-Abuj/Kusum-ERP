@@ -91,7 +91,7 @@
     <form method="post" action="/customers/<%= customer.id %>" onsubmit="return confirm('Save these customer details? All linked invoices and PDFs will show the updated customer information.')">
       <div class="modal-body">
         <div class="form-grid customer-edit-fields">
-          <label>Full name *<input name="name" data-uppercase required value="<%= customer.name %>"></label>
+          <label>Full name *<input name="name" data-uppercase data-customer-autocomplete required autocomplete="off" value="<%= customer.name %>"></label>
           <label>Mobile number / ID<input name="phone" inputmode="numeric" maxlength="15" value="<%= customer.phone || '' %>"></label>
           <label>Email<input name="email" type="email" value="<%= customer.email || '' %>"></label>
           <label>PAN<input name="panNumber" maxlength="20" data-uppercase value="<%= customer.panNumber || '' %>"></label>

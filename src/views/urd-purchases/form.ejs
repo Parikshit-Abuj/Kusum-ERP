@@ -30,7 +30,7 @@
         </div>
       </div>
       <div class="cust-new-grid" data-new-customer-fields hidden>
-        <div class="pos-field"><label>Customer Name *</label><input name="customerName" disabled data-customer-name data-uppercase placeholder="Customer full name"></div>
+        <div class="pos-field"><label>Customer Name *</label><input name="customerName" disabled data-customer-name data-customer-autocomplete data-uppercase placeholder="Customer full name"></div>
         <div class="pos-field"><label>PAN No. (optional)</label><input name="customerPan" disabled data-customer-pan placeholder="e.g. ABCDE1234F" maxlength="10" autocomplete="off" style="text-transform:uppercase;"></div>
         <div class="pos-field"><label>Email (optional)</label><input name="customerEmail" type="email" disabled data-customer-email placeholder="customer@gmail.com"></div>
         <div class="pos-field"><label>City / Address</label><input name="customerAddress" disabled data-customer-address data-uppercase placeholder="City / Area"></div>
@@ -44,7 +44,7 @@
       <div class="urd-item-row" data-urd-item-row>
         <div class="urd-item-row-head"><strong>Item <span data-urd-item-number>1</span></strong><button class="icon-button" type="button" data-urd-remove-item title="Remove item">✕</button></div>
         <div class="urd-item-grid">
-          <label class="urd-item-description">Item description *<input name="urdItemDescription" required data-urd-item-description data-uppercase placeholder="e.g. Gold chain"></label>
+          <label class="urd-item-description">Item description *<input name="urdItemDescription" required data-urd-item-description data-item-autocomplete data-uppercase placeholder="e.g. Gold chain"></label>
           <label>Metal *<select name="urdItemMetal" required data-urd-item-metal><option value="GOLD">Gold</option><option value="SILVER">Silver</option><option value="PLATINUM">Platinum</option><option value="OTHER">Other</option></select></label>
           <label>Purity<input name="urdItemPurity" data-urd-item-purity data-urd-purity-manual maxlength="50" placeholder="e.g. 22K, 925, 99.9"></label>
           <label>Gross wt. (g)<input name="urdItemGrossWeight" type="number" step="0.001" min="0" data-urd-item-gross placeholder="0.000"></label>

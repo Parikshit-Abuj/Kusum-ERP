@@ -1,3 +1,4 @@
+<% const isWindowsPrinter = typeof printerPlatform !== 'undefined' ? printerPlatform === 'windows' : true; const nativePrinterMode = isWindowsPrinter ? 'WINDOWS' : 'CUPS'; %>
 <header class="page-header">
   <div><p class="eyebrow">Native TSPL labels</p><h1>Barcode printer setup</h1></div>
   <a class="button ghost" href="/inventory">Back to inventory</a>
@@ -8,11 +9,11 @@
     <div class="panel-heading"><div><h2>Connection</h2></div></div>
     <form method="post" action="/printer-setup" id="printer-setup-form" class="stack-form">
       <div class="segmented-control" role="radiogroup" aria-label="Barcode printer transport">
-        <label><input type="radio" name="printerMode" value="WINDOWS" <%= printer.mode === 'TCP' ? '' : 'checked' %>> Windows printer / USB</label>
+        <label><input type="radio" name="printerMode" value="<%= nativePrinterMode %>" <%= printer.mode === 'TCP' ? '' : 'checked' %>> <%= isWindowsPrinter ? 'Windows printer / USB' : 'CUPS printer / USB' %></label>
         <label><input type="radio" name="printerMode" value="TCP" <%= printer.mode === 'TCP' ? 'checked' : '' %>> Direct TCP / Ethernet</label>
       </div>
       <div data-windows-printer-fields>
-        <label>Installed Windows printer name<input name="printerName" type="text" value="<%= printer.name %>" autocomplete="off" placeholder="Example: TSC TTP-244 Pro" class="preserve-case" data-no-uppercase></label>
+        <label><%= isWindowsPrinter ? 'Installed Windows printer name' : 'Installed CUPS printer queue' %><input name="printerName" type="text" value="<%= printer.name %>" autocomplete="off" placeholder="<%= isWindowsPrinter ? 'Example: TSC TTP-244 Pro' : 'Example: TSC_TTP_244_Pro' %>" class="preserve-case" data-no-uppercase></label>
       </div>
       <div class="form-grid two compact-fields" data-tcp-printer-fields hidden>
         <label>Printer / print-server IP<input name="printerHost" type="text" value="<%= printer.host %>" autocomplete="off" placeholder="Example: 192.168.1.60" class="preserve-case" data-no-uppercase autocapitalize="none" spellcheck="false"></label>

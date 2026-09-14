@@ -895,6 +895,134 @@ form[action="/network-setup"] input,
 }
 .autocomplete-list .autocomplete-new { color: var(--gold-dark); font-weight: 700; font-style: italic; }
 
+/* Shared customer-name suggestions. The list is positioned against the
+   viewport so it remains usable inside dialogs, tables and scrolled forms. */
+.customer-autocomplete-results {
+  position: fixed;
+  z-index: 10050;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px 0;
+  background: var(--panel, #fff);
+  border: 1px solid var(--line, #e3d9cd);
+  border-radius: 8px;
+  box-shadow: 0 14px 32px rgba(29, 22, 14, .18);
+}
+.customer-autocomplete-option {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 0;
+  border-bottom: 1px solid rgba(0, 0, 0, .04);
+  background: var(--panel, #fff);
+  color: var(--ink, #2b2723);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+.customer-autocomplete-option:last-child { border-bottom: 0; }
+.customer-autocomplete-option strong { color: var(--ink, #2b2723); font-size: 13px; font-weight: 700; }
+.customer-autocomplete-option small { color: var(--muted, #6b635b); font-size: 11px; }
+.customer-autocomplete-option:hover,
+.customer-autocomplete-option:focus,
+.customer-autocomplete-option.is-highlighted { background: #fbf5eb; outline: none; }
+.customer-autocomplete-option:hover strong,
+.customer-autocomplete-option:focus strong,
+.customer-autocomplete-option.is-highlighted strong { color: var(--gold-dark, #b47a21); }
+
+/* Shared item-name suggestions. Keep the menu viewport-anchored so it works
+   inside long forms, report filters, and dynamically added URD rows. */
+.item-autocomplete-results {
+  position: fixed;
+  z-index: 10050;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px 0;
+  background: var(--panel, #fff);
+  border: 1px solid var(--line, #e3d9cd);
+  border-radius: 8px;
+  box-shadow: 0 14px 32px rgba(29, 22, 14, .18);
+}
+.item-autocomplete-option {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 0;
+  border-bottom: 1px solid rgba(0, 0, 0, .04);
+  background: var(--panel, #fff);
+  color: var(--ink, #2b2723);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+.item-autocomplete-option:last-child { border-bottom: 0; }
+.item-autocomplete-option strong { color: var(--ink, #2b2723); font-size: 13px; font-weight: 700; }
+.item-autocomplete-option small { color: var(--muted, #6b635b); font-size: 11px; }
+.item-autocomplete-option:hover,
+.item-autocomplete-option:focus,
+.item-autocomplete-option.is-highlighted { background: #fbf5eb; outline: none; }
+.item-autocomplete-option:hover strong,
+.item-autocomplete-option:focus strong,
+.item-autocomplete-option.is-highlighted strong { color: var(--gold-dark, #b47a21); }
+
+/* Shared supplier-name suggestions for purchase registers and directory
+   search. Keep the menu viewport-anchored so it is not clipped by panels. */
+.supplier-autocomplete-results {
+  position: fixed;
+  z-index: 10050;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px 0;
+  background: var(--panel, #fff);
+  border: 1px solid var(--line, #e3d9cd);
+  border-radius: 8px;
+  box-shadow: 0 14px 32px rgba(29, 22, 14, .18);
+}
+.supplier-autocomplete-option {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 0;
+  border-bottom: 1px solid rgba(0, 0, 0, .04);
+  background: var(--panel, #fff);
+  color: var(--ink, #2b2723);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+.supplier-autocomplete-option:last-child { border-bottom: 0; }
+.supplier-autocomplete-option strong { color: var(--ink, #2b2723); font-size: 13px; font-weight: 700; }
+.supplier-autocomplete-option small { color: var(--muted, #6b635b); font-size: 11px; }
+.supplier-autocomplete-option:hover,
+.supplier-autocomplete-option:focus,
+.supplier-autocomplete-option.is-highlighted { background: #fbf5eb; outline: none; }
+.supplier-autocomplete-option:hover strong,
+.supplier-autocomplete-option:focus strong,
+.supplier-autocomplete-option.is-highlighted strong { color: var(--gold-dark, #b47a21); }
+
+/* Compact supplier directory search without making the form feel like a
+   second filter panel. */
+.supplier-directory-search { align-items: flex-end; }
+.supplier-directory-search label { display: grid; min-width: min(100%, 410px); gap: 3px; color: var(--muted, #70685e); font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.supplier-directory-search label small { color: var(--muted, #70685e); font-size: 11px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.supplier-directory-search label input { max-width: none; }
+@media (max-width: 600px) {
+  .supplier-directory-search { align-items: stretch; flex-wrap: wrap; }
+  .supplier-directory-search label { min-width: 100%; }
+}
+
 /* ── Item Names management ────────────────────────────────── */
 .item-names-add { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; padding: 0 0 16px; border-bottom: 1px solid var(--line); margin-bottom: 0; }
 .item-names-add label { font-size: 11px; font-weight: 700; color: #554e47; flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 4px; }
@@ -2244,16 +2372,6 @@ nav a {
   .workspace-toolbar { display: none; }
 }
 
-/* ── Focused billing workspace ───────────────────────────────── */
-body.billing-focus-mode { background: #f5f1ea; }
-body.billing-focus-mode .sidebar,
-body.billing-focus-mode .mobile-top-bar,
-body.billing-focus-mode .sidebar-backdrop,
-body.billing-focus-mode .workspace-toolbar { display: none !important; }
-body.billing-focus-mode .main-content { width: 100%; max-width: none; margin-left: 0; padding: 18px 28px 32px; }
-body.billing-focus-mode .billing-header-strip { position: sticky; top: 10px; z-index: 20; box-shadow: 0 9px 24px rgba(50, 37, 20, .10); }
-body.billing-focus-mode .transaction-summary { position: sticky; top: 92px; max-height: calc(100vh - 110px); overflow-y: auto; }
-
 /* ── Customer activity timeline ──────────────────────────────── */
 .customer-activity-panel { margin: 16px 0; }
 .customer-timeline { display: grid; gap: 0; padding: 0; margin: 0; list-style: none; }
@@ -2423,6 +2541,15 @@ body.billing-focus-mode .transaction-summary { position: sticky; top: 92px; max-
 .scheme-bulk-table th { white-space: nowrap; }
 .scheme-bulk-table td { padding: 8px 10px; vertical-align: middle; }
 .scheme-bulk-table td input { width: 100%; min-width: 0; min-height: 34px; padding: 7px 9px; }
+.scheme-bulk-name-control { position: relative; min-width: 0; }
+.scheme-bulk-name-control > input[type="text"] { display: block; }
+.scheme-bulk-name-results { position: fixed; z-index: 1000; max-height: 220px; overflow-y: auto; border: 1px solid #dfd4c3; border-radius: 9px; background: #fff; box-shadow: 0 12px 28px rgba(46, 33, 15, .16); }
+.scheme-bulk-name-option { display: flex; width: 100%; flex-direction: column; align-items: flex-start; gap: 2px; padding: 9px 11px; border: 0; border-bottom: 1px solid #f0ebe4; background: #fff; color: #2b2319; cursor: pointer; text-align: left; font: inherit; }
+.scheme-bulk-name-option:last-child { border-bottom: 0; }
+.scheme-bulk-name-option:hover, .scheme-bulk-name-option:focus, .scheme-bulk-name-option.is-highlighted { background: #fff8eb; outline: none; }
+.scheme-bulk-name-option strong { font-size: 12.5px; }
+.scheme-bulk-name-option small, .scheme-bulk-name-empty { color: #837665; font-size: 11.5px; }
+.scheme-bulk-name-empty { padding: 11px; }
 .scheme-bulk-row-number { color: var(--muted); text-align: center; font-weight: 800; }
 .scheme-bulk-remove { width: 28px; height: 28px; padding: 0; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; }
 .scheme-bulk-remove:hover { border-color: #d6a138; color: #9c6811; background: #fffaf0; }

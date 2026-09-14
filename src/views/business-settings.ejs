@@ -1,5 +1,5 @@
 <header class="page-header">
-  <div><p class="eyebrow">Shop configuration</p><h1>Business settings</h1><p>Identity, invoices, tax defaults and barcode labels.</p></div>
+  <div><p class="eyebrow">Shop configuration</p><h1>Business settings</h1><p>Identity, invoices, tax defaults and signatures.</p></div>
 </header>
 
 <form method="post" action="/business-settings" class="settings-form" id="businessSettingsForm">
@@ -36,25 +36,6 @@
         <input name="signatureData" type="hidden" data-signature-data>
         <% if (settings.signatureImage) { %><label class="check-row"><input name="removeSignature" type="checkbox"> Remove saved signature and use bundled fallback</label><% } %>
       </div>
-    </div>
-  </section>
-
-  <section class="panel settings-section">
-    <div class="panel-heading"><div><h2>Barcode printer and label</h2></div></div>
-    <div class="segmented-control" role="radiogroup" aria-label="Barcode printer transport">
-      <label><input type="radio" name="printerMode" value="WINDOWS" <%= printer.mode === 'TCP' ? '' : 'checked' %>> Windows printer / USB</label>
-      <label><input type="radio" name="printerMode" value="TCP" <%= printer.mode === 'TCP' ? 'checked' : '' %>> Direct TCP / Ethernet</label>
-    </div>
-    <div class="form-grid two">
-      <label>Windows printer name<input name="printerName" class="preserve-case" data-no-uppercase value="<%= printer.name %>"></label>
-      <label>Printer IP / host<input name="printerHost" class="preserve-case" data-no-uppercase value="<%= printer.host %>"></label>
-      <label>TCP port<input name="printerPort" type="number" min="1" max="65535" value="<%= printer.port || 9100 %>"></label>
-      <label>Text printed on label<input name="labelShopName" maxlength="80" value="<%= settings.labelShopName %>"></label>
-      <label>Label width (mm)<input name="labelWidthMm" type="number" min="20" max="120" step="0.01" value="<%= settings.labelWidthMm %>"></label>
-      <label>Label height (mm)<input name="labelHeightMm" type="number" min="8" max="100" step="0.01" value="<%= settings.labelHeightMm %>"></label>
-      <label>Gap (mm)<input name="labelGapMm" type="number" min="0" max="20" step="0.01" value="<%= settings.labelGapMm %>"></label>
-      <label>Print speed (1–6)<input name="labelSpeed" type="number" min="1" max="6" step="1" value="<%= settings.labelSpeed %>"></label>
-      <label>Print density (0–15)<input name="labelDensity" type="number" min="0" max="15" step="1" value="<%= settings.labelDensity %>"></label>
     </div>
   </section>
 

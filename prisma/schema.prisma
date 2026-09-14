@@ -1,5 +1,8 @@
 generator client {
   provider = "prisma-client-js"
+  // Keep the native engine for the build host and include the Ubuntu/Debian
+  // engine used by the first Linux release target.
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {

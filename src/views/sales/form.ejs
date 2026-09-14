@@ -740,7 +740,7 @@
     .sale-review-body { padding: 16px !important; }
   }
 
-  /* ── Focused cashier workflow ─────────────────────────────── */
+  /* ── Cashier workflow refinements ──────────────────────────── */
   .billing-header-strip { padding: 10px 16px; }
   .billing-title-text p { margin-top: 1px; }
   .transaction-layout.barcode-sale { grid-template-columns: minmax(0, 1fr) 370px !important; }
@@ -748,7 +748,7 @@
   .item-card-heading { display: flex; align-items: center; gap: 8px; }
   .item-count { color: #756a5b; font-size: 11.5px; font-weight: 700; }
   .barcode-cart {
-    min-height: 132px;
+    min-height: 82px;
     max-height: 410px;
     overflow: auto;
     padding: 1px 6px 1px 1px;
@@ -768,6 +768,91 @@
   .billing-optional textarea { margin-top: 8px; }
   .transaction-summary { max-height: calc(100vh - 112px); overflow-y: auto; }
 
+  .sale-detail-summary {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-height: 38px;
+    padding: 5px 8px;
+    box-sizing: border-box;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+  }
+  .sale-detail-summary.has-details { justify-content: space-between; }
+  .sale-detail-summary { width: fit-content; max-width: 100%; }
+  .sale-detail-summary:not(.has-details) { padding: 0; border-color: transparent; background: transparent; }
+  .sale-detail-summary.has-details { width: 100%; }
+  .sale-customer-field { align-content: center; }
+  .sale-customer-field .sale-detail-summary { justify-self: end; }
+  .sale-detail-summary-copy { display: grid; min-width: 0; gap: 1px; }
+  .sale-detail-summary-copy > span { color: #7a6d5e; font-size: 9px; font-weight: 800; letter-spacing: .045em; text-transform: uppercase; }
+  .sale-detail-summary-copy strong,
+  .sale-detail-summary-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sale-detail-summary-copy strong { color: #2b2319; font-size: 12px; }
+  .sale-detail-summary-copy small { color: #756f69; font-size: 10px; }
+  .sale-detail-summary .button { flex-shrink: 0; }
+  .sale-customer-modal,
+  .sale-urd-modal,
+  .sale-split-payment-modal { z-index: 10012; }
+  .sale-customer-modal-card,
+  .sale-urd-modal-card { width: min(760px, calc(100vw - 32px)); max-width: 760px !important; }
+  .sale-split-payment-modal-card { width: min(520px, calc(100vw - 32px)); max-width: 520px !important; }
+  .sale-customer-modal-body,
+  .sale-urd-modal-body,
+  .sale-split-payment-modal-body { max-height: min(72vh, 660px); overflow-y: auto; padding: 20px 24px !important; }
+  .sale-split-payment-modal-body > p { margin: 0 0 16px; }
+  .split-payment-edit { align-self: flex-start; margin-top: 8px; }
+  .split-payment-summary { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; }
+  .split-payment-modal-total { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 16px; padding: 12px 14px; border: 1px solid #eadfca; border-radius: 9px; background: #fffaf0; }
+  .split-payment-modal-total span { color: var(--muted); font-size: 12px; font-weight: 700; }
+  .split-payment-modal-total strong { color: var(--ink); font-size: 17px; }
+  .sale-customer-modal-top { grid-template-columns: minmax(0, 1fr); margin-bottom: 12px; }
+  .sale-customer-modal-body .customer-lookup { margin-top: 12px; }
+  .sale-customer-modal-body .cust-status-badge { margin-bottom: 10px; }
+  .sale-urd-modal-body .urd-settlement-fields { margin-top: 12px; }
+  .sale-customer-modal .modal-header,
+  .sale-urd-modal .modal-header,
+  .sale-split-payment-modal .modal-header { padding: 17px 24px; }
+  .sale-customer-modal .modal-header h2,
+  .sale-urd-modal .modal-header h2,
+  .sale-split-payment-modal .modal-header h2 { margin-bottom: 0; }
+  .sale-customer-modal .sale-line-editor-footer,
+  .sale-urd-modal .sale-line-editor-footer,
+  .sale-split-payment-modal .sale-line-editor-footer { padding: 14px 24px; }
+  .sale-urd-modal [data-sale-urd-remove] { margin-right: auto; color: #a13d32; }
+  .urd-settlement { margin-top: 12px; padding: 7px 9px; }
+  .urd-settlement:not(.has-details) { display: flex; justify-content: flex-end; padding: 0; border-color: transparent; background: transparent; }
+  .urd-settlement:not(.has-details) .sale-detail-summary { background: transparent; border-color: transparent; }
+  .urd-settlement.has-details .sale-detail-summary { width: 100%; }
+  .transaction-main #invoice-customer .pos-grid-3 {
+    grid-template-columns: minmax(220px, .95fr) 210px minmax(250px, 1.1fr);
+    align-items: end;
+  }
+  .transaction-layout.barcode-sale[data-edit-sale="false"] #invoice-customer .pos-grid-3 {
+    grid-template-columns: 190px minmax(0, 460px);
+    justify-content: start;
+  }
+  .transaction-layout.barcode-sale[data-edit-sale="false"] #invoice-customer .sale-customer-field { max-width: 460px; }
+  .sale-invoice-number-field input { max-width: 240px; }
+  .sale-billing-date-field input { max-width: 190px; }
+  .billing-wayfinder {
+    justify-content: flex-start;
+    gap: 2px !important;
+    margin-bottom: 10px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .billing-wayfinder a { flex: 0 0 auto !important; padding: 2px 7px !important; gap: 6px !important; color: #746b61 !important; }
+  .billing-wayfinder a:hover { background: #fff9ed !important; color: #8a5b15 !important; }
+  .billing-wayfinder b { width: 20px !important; height: 20px !important; border-radius: 6px !important; }
+  .billing-wayfinder a:not(:last-child)::after { content: '›'; margin-left: 6px; color: #b8ab9a; font-size: 15px; }
+  .erp-ui:has(.billing-wrapper) .workspace-toolbar { min-height: 50px; margin-bottom: 12px; padding-top: 7px; padding-bottom: 7px; }
+  .erp-ui:has(.billing-wrapper) .billing-wrapper { gap: 10px; }
+  .erp-ui:has(.billing-wrapper) .billing-header-strip { padding-top: 8px; padding-bottom: 8px; }
+
   @media (max-width: 1100px) {
     .transaction-summary { max-height: none; position: static; }
   }
@@ -775,6 +860,23 @@
   @media (max-width: 800px) {
     .billing-header-strip { align-items: flex-start; }
     .barcode-cart { max-height: 360px; }
+  }
+  @media (max-width: 720px) {
+    .transaction-main #invoice-customer .pos-grid-3 { grid-template-columns: 1fr; }
+    .transaction-layout.barcode-sale[data-edit-sale="false"] #invoice-customer .pos-grid-3 { grid-template-columns: 1fr; }
+    .sale-billing-date-field input { max-width: none; }
+    .sale-invoice-number-field input { max-width: none; }
+    .sale-customer-modal-body,
+    .sale-urd-modal-body,
+    .sale-split-payment-modal-body { padding: 16px !important; }
+    .sale-detail-summary { align-items: flex-start; flex-direction: column; }
+    .sale-detail-summary .button { width: 100%; }
+    .sale-customer-modal .modal-header,
+    .sale-urd-modal .modal-header,
+    .sale-split-payment-modal .modal-header,
+    .sale-customer-modal .sale-line-editor-footer,
+    .sale-urd-modal .sale-line-editor-footer,
+    .sale-split-payment-modal .sale-line-editor-footer { padding-left: 16px; padding-right: 16px; }
   }
 
   /* ── Static invoice cart and item editor ──────────────────── */
@@ -864,7 +966,6 @@
     </div>
 
     <div class="billing-rate-pills">
-      <button class="button ghost small" type="button" data-billing-focus-toggle aria-pressed="false" style="border-radius:20px; font-size:11px; padding:3px 8px;">Focus mode</button>
       <% if (!editingSale) { %>
       <button class="button ghost small" type="button" data-save-sale-draft style="border-radius:20px; font-size:11px; padding:3px 8px;">Save draft</button>
       <% } %>
@@ -905,89 +1006,26 @@
         </div>
 
         <div class="pos-grid-3">
-          <div class="pos-field">
+          <div class="pos-field sale-invoice-number-field" <%= editingSale ? '' : 'hidden' %>>
             <label>Invoice Number</label>
             <input name="invoiceNumber" readonly value="<%= typeof invoiceNumber !== 'undefined' ? invoiceNumber : '' %>" placeholder="Assigned when saved" style="font-family:'Courier New',monospace; font-weight:750; background:#fbf9f5;">
           </div>
-          <div class="pos-field">
+          <div class="pos-field sale-billing-date-field">
             <label>Billing Date</label>
             <input name="saleDate" type="date" value="<%= editingSale ? editSale.saleDate : dateInput() %>" data-sale-date required>
           </div>
-          <div class="pos-field">
-            <label>Customer Mobile Number</label>
-            <input name="customerPhone" inputmode="numeric" autocomplete="tel" maxlength="15" placeholder="Optional mobile number" data-customer-phone autofocus value="<%= (editingSale && editSale.customer?.phone) ? editSale.customer.phone : '' %>">
+          <div class="pos-field sale-customer-field">
+            <div class="sale-detail-summary" data-sale-customer-summary>
+              <div class="sale-detail-summary-copy" data-sale-customer-summary-content <%= (!editingSale || !editSale.customer) ? 'hidden' : '' %>>
+                <span>Selected customer</span>
+                <strong data-sale-customer-summary-name><%= editingSale ? (editSale.customer?.name || 'Customer') : '' %></strong>
+                <small data-sale-customer-summary-details><%= editingSale ? [editSale.customer?.phone, editSale.customer?.email].filter(Boolean).join(' · ') : '' %></small>
+              </div>
+              <button class="button ghost small" type="button" data-sale-customer-open><%= editingSale ? 'Edit customer' : '+ Add customer' %></button>
+            </div>
           </div>
         </div>
 
-        <% if (editingSale) { %>
-        <div class="cust-new-grid" data-edit-sale-customer style="margin-top: 10px;">
-          <div class="pos-field">
-            <label>Customer Name *</label>
-            <input name="customerName" required data-uppercase data-edit-customer-name value="<%= editSale.customer?.name || '' %>" placeholder="Customer full name">
-          </div>
-          <div class="pos-field">
-            <label>PAN No. (optional)</label>
-            <input name="customerPan" data-edit-customer-pan maxlength="10" autocomplete="off" value="<%= editSale.customer?.panNumber || '' %>" style="text-transform:uppercase;">
-          </div>
-          <div class="pos-field">
-            <label>Email (optional)</label>
-            <input name="customerEmail" type="email" data-edit-customer-email value="<%= editSale.customer?.email || '' %>" placeholder="customer@gmail.com">
-          </div>
-          <div class="pos-field">
-            <label>City / Address</label>
-            <input name="customerAddress" data-uppercase data-edit-customer-address value="<%= editSale.customer?.address || '' %>" placeholder="City / Area">
-          </div>
-        </div>
-        <% } else { %>
-        <!-- Customer Lookup Component -->
-        <section class="customer-lookup" data-customer-lookup>
-          <input type="hidden" name="customerId" data-customer-id>
-          <div class="customer-search-control">
-            <label for="billingCustomerSearch">Find existing customer</label>
-            <input id="billingCustomerSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Search by name or mobile" data-customer-search>
-            <div class="customer-search-results" data-customer-search-results role="listbox" hidden></div>
-          </div>
-          <button class="button ghost small customer-new-action" type="button" data-new-customer-open>+ New customer</button>
-          <div class="cust-status-badge" data-customer-status>
-            Enter a customer name. Mobile number is optional.
-          </div>
-
-          <!-- Existing Customer Found -->
-          <div class="cust-existing-box" data-existing-customer hidden>
-            <div class="cust-existing-info">
-              <strong data-existing-name></strong>
-              <span data-existing-details></span>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <label style="margin:0; font-size:10.5px; display:inline-flex; align-items:center; gap:4px; font-weight:700; color:#2e7d32;">
-                <span>PAN (opt):</span>
-                <input name="existingCustomerPan" data-existing-pan placeholder="e.g. ABCDE1234F" maxlength="10" autocomplete="off" style="padding:4px 7px; font-size:11.5px; width:110px; text-transform:uppercase; border:1px solid #a3d9b8; border-radius:6px;">
-              </label>
-              <a class="button ghost small" data-existing-ledger href="#" hidden style="background:#fff; border-color:#a3d9b8; color:#145a32; padding:3px 8px; font-size:11px;">Open Ledger →</a>
-            </div>
-          </div>
-
-          <!-- New Customer Entry Fields -->
-          <div class="cust-new-grid" data-new-customer-fields hidden>
-            <div class="pos-field">
-              <label>Customer Name *</label>
-              <input name="customerName" disabled data-customer-name data-uppercase placeholder="Customer full name">
-            </div>
-            <div class="pos-field">
-              <label>PAN No. (optional)</label>
-              <input name="customerPan" disabled data-customer-pan placeholder="e.g. ABCDE1234F" maxlength="10" autocomplete="off" style="text-transform:uppercase;">
-            </div>
-            <div class="pos-field">
-              <label>Email (optional)</label>
-              <input name="customerEmail" type="email" disabled data-customer-email placeholder="customer@gmail.com">
-            </div>
-            <div class="pos-field">
-              <label>City / Address</label>
-              <input name="customerAddress" disabled data-customer-address data-uppercase placeholder="City / Area">
-            </div>
-          </div>
-        </section>
-        <% } %>
       </div>
 
       <!-- 2. Scanned Jewellery Items -->
@@ -1005,47 +1043,15 @@
           <div class="barcode-lines" data-rows></div>
         </div>
 
-        <!-- 3. URD Buyback / Old Gold Exchange Settlement Card -->
+        <!-- 3. URD Buyback / Old Gold Exchange Settlement -->
         <section class="urd-settlement" data-sale-urd>
-          <label class="urd-toggle">
-            <input type="checkbox" name="includeUrdPurchase" data-urd-enabled <%= (editingSale && editSale.urd) ? 'checked' : '' %>>
-            <span>
-              <strong>Adjust Old Gold / Silver (URD Buyback) against this bill</strong>
-              <small>Deduct scrap jewellery exchange value directly from this bill's net payable.</small>
-            </span>
-          </label>
-
-          <div class="urd-settlement-fields" data-urd-fields hidden>
-            <div class="urd-grid">
-              <div class="pos-field">
-                <label>Metal</label>
-                <select name="urdMetal" data-urd-metal><option value="GOLD" <%= (editingSale && editSale.urd?.metal === 'GOLD') ? 'selected' : '' %>>Gold</option><option value="SILVER" <%= (editingSale && editSale.urd?.metal === 'SILVER') ? 'selected' : '' %>>Silver</option></select>
-              </div>
-              <div class="pos-field">
-                <label>Purity</label>
-                <input name="urdPurity" data-urd-purity-manual maxlength="50" placeholder="e.g. 22K, 24K, 925, 99.9" value="<%= (editingSale && editSale.urd?.purity) ? editSale.urd.purity : '' %>">
-              </div>
-              <div class="pos-field">
-                <label>Gross Wt. (g)</label>
-                <input name="urdGrossWeight" type="number" min="0" step="0.001" value="<%= (editingSale && editSale.urd) ? editSale.urd.grossWeight : 0 %>" data-urd-gross-weight>
-              </div>
-              <div class="pos-field">
-                <label>Net Wt. (g)</label>
-                <input name="urdNetWeight" type="number" min="0" step="0.001" value="<%= (editingSale && editSale.urd) ? editSale.urd.netWeight : 0 %>" data-urd-net-weight>
-              </div>
-              <div class="pos-field">
-                <label>Rate / g (₹)</label>
-                <input name="urdRatePerGram" type="number" min="0" step="0.01" value="<%= (editingSale && editSale.urd) ? editSale.urd.ratePerGram : 0 %>" data-urd-rate data-rate-22="<%= rateInfo.rate ? Number(rateInfo.rate.gold22k) : 0 %>" data-rate-24="<%= rateInfo.rate ? Number(rateInfo.rate.gold24k) : 0 %>" data-rate-silver="<%= rateInfo.rate ? Number(rateInfo.rate.silver) : 0 %>">
-              </div>
-              <div class="pos-field">
-                <label>URD Total (₹)</label>
-                <input name="urdTotalAmount" type="number" min="0" step="0.01" value="<%= (editingSale && editSale.urd) ? editSale.urd.totalAmount : 0 %>" data-urd-amount>
-              </div>
-              <div class="pos-field" style="grid-column: span 2;">
-                <label>Description</label>
-                <input name="urdDescription" data-uppercase placeholder="Old melted gold chain, broken ring, etc." value="<%= (editingSale && editSale.urd?.description) || '' %>">
-              </div>
+          <div class="sale-detail-summary <%= (editingSale && editSale.urd) ? 'has-details' : '' %>" data-sale-urd-summary>
+            <div class="sale-detail-summary-copy" data-sale-urd-summary-content <%= (!editingSale || !editSale.urd) ? 'hidden' : '' %>>
+              <span>URD adjustment</span>
+              <strong data-sale-urd-summary-name><%= (editingSale && editSale.urd) ? `${editSale.urd.metal || 'Metal'} buyback` : '' %></strong>
+              <small data-sale-urd-summary-details><%= (editingSale && editSale.urd) ? `${Number(editSale.urd.netWeight || 0).toFixed(3)} g · ${money(editSale.urd.totalAmount || 0)}` : '' %></small>
             </div>
+            <button class="button ghost small" type="button" data-sale-urd-open><%= (editingSale && editSale.urd) ? 'Edit URD' : '+ Add URD' %></button>
           </div>
         </section>
 
@@ -1102,7 +1108,7 @@
           </div>
         </template>
 
-        <details class="billing-optional" <%= editingSale ? 'open' : '' %>>
+        <details class="billing-optional" open>
           <summary>Invoice notes / reference</summary>
           <textarea name="notes" data-uppercase rows="2" placeholder="Bargaining note, hallmark reference, etc." style="width:100%; border:1.5px solid #ded5c5; border-radius:8px; padding:8px 10px; font-family:inherit; box-sizing:border-box;"><%= (editingSale && editSale.notes) || '' %></textarea>
         </details>
@@ -1144,7 +1150,6 @@
         <span>URD Buyback</span>
         <strong>− <span data-urd-offset>₹0.00</span></strong>
       </div>
-      <p class="muted" data-urd-refund-note hidden>Any URD value above the bill is refunded using the method selected below.</p>
 
       <div class="net-payable-box">
         <span data-net-payable-label>Net Payable</span>
@@ -1161,7 +1166,7 @@
         </select>
       </div>
 
-      <div class="summary-input-wrap">
+      <div class="summary-input-wrap" data-paid-wrap>
         <label>Amount Received Now (₹)</label>
         <input name="paid" type="number" min="0" step="0.01" placeholder="0.00" data-paid value="<%= (editingSale && editSale.initialPayment?.paid !== undefined) ? editSale.initialPayment.paid : '' %>" style="font-size:14.5px; border-color:#c9a044;">
       </div>
@@ -1171,32 +1176,15 @@
         <strong data-balance>₹0.00</strong>
       </div>
 
-      <div class="summary-input-wrap">
+      <div class="summary-input-wrap" data-payment-method-wrap>
         <label>Payment Method</label>
         <select name="paymentMethod" data-payment-method>
           <% ['CASH','UPI','CARD','BANK_TRANSFER','CREDIT','MIXED'].forEach((method) => { %>
           <option value="<%= method %>" <%= editingSale && editSale.initialPayment?.paymentMethod === method ? 'selected' : '' %>><%= method === 'CASH' ? 'Cash' : (method === 'UPI' ? 'UPI / QR' : (method === 'CARD' ? 'Card' : (method === 'BANK_TRANSFER' ? 'Bank Transfer' : (method === 'CREDIT' ? 'Credit (Pay Later)' : 'Mixed Split Payment')))) %></option>
           <% }) %>
         </select>
-      </div>
-
-      <div class="form-grid two compact-fields" data-split-payment hidden style="display:none; background:#faf7f2; padding:10px; border-radius:8px; margin-bottom:10px; gap:8px;">
-        <div class="pos-field">
-          <label>Cash (₹)</label>
-          <input name="cashPaid" type="number" min="0" step="0.01" value="<%= (editingSale && editSale.initialPayment?.cashPaid !== undefined) ? editSale.initialPayment.cashPaid : '' %>" placeholder="0.00" data-cash-paid disabled>
-        </div>
-        <div class="pos-field">
-          <label>UPI (₹)</label>
-          <input name="upiPaid" type="number" min="0" step="0.01" value="<%= (editingSale && editSale.initialPayment?.upiPaid !== undefined) ? editSale.initialPayment.upiPaid : '' %>" placeholder="0.00" data-upi-paid disabled>
-        </div>
-        <div class="pos-field">
-          <label>Card (₹)</label>
-          <input name="cardPaid" type="number" min="0" step="0.01" value="<%= (editingSale && editSale.initialPayment?.cardPaid !== undefined) ? editSale.initialPayment.cardPaid : '' %>" placeholder="0.00" data-card-paid disabled>
-        </div>
-        <div class="pos-field">
-          <label>Bank (₹)</label>
-          <input name="bankPaid" type="number" min="0" step="0.01" value="<%= (editingSale && editSale.initialPayment?.bankPaid !== undefined) ? editSale.initialPayment.bankPaid : '' %>" placeholder="0.00" data-bank-paid disabled>
-        </div>
+        <button type="button" class="button ghost small split-payment-edit" data-split-payment-open hidden aria-controls="saleSplitPaymentModal">Enter split amounts</button>
+        <small class="split-payment-summary" data-split-payment-summary hidden></small>
       </div>
 
       <div class="sale-submit-actions">
@@ -1206,6 +1194,144 @@
         </button>
       </div>
     </aside>
+
+    <div class="modal-overlay sale-customer-modal" id="saleCustomerModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="saleCustomerModalTitle" aria-hidden="true">
+      <section class="modal-card sale-customer-modal-card" role="document">
+        <header class="modal-header">
+          <div><p class="eyebrow">Customer details</p><h2 id="saleCustomerModalTitle">Customer details</h2></div>
+          <button class="modal-close-btn" type="button" data-sale-customer-close aria-label="Close customer details">&times;</button>
+        </header>
+        <div class="modal-body sale-customer-modal-body">
+          <div class="pos-grid-3 sale-customer-modal-top">
+            <div class="pos-field">
+              <label>Customer mobile number</label>
+              <input name="customerPhone" inputmode="numeric" autocomplete="tel" maxlength="15" placeholder="Optional mobile number" data-customer-phone value="<%= (editingSale && editSale.customer?.phone) ? editSale.customer.phone : '' %>">
+            </div>
+          </div>
+
+          <% if (editingSale) { %>
+          <div class="cust-new-grid" data-edit-sale-customer>
+            <div class="pos-field">
+              <label>Customer Name *</label>
+              <input name="customerName" required data-uppercase data-edit-customer-name data-customer-autocomplete value="<%= editSale.customer?.name || '' %>" placeholder="Customer full name">
+            </div>
+            <div class="pos-field">
+              <label>PAN No. (optional)</label>
+              <input name="customerPan" data-edit-customer-pan maxlength="10" autocomplete="off" value="<%= editSale.customer?.panNumber || '' %>" style="text-transform:uppercase;">
+            </div>
+            <div class="pos-field">
+              <label>Email (optional)</label>
+              <input name="customerEmail" type="email" data-edit-customer-email value="<%= editSale.customer?.email || '' %>" placeholder="customer@gmail.com">
+            </div>
+            <div class="pos-field">
+              <label>City / Address</label>
+              <input name="customerAddress" data-uppercase data-edit-customer-address value="<%= editSale.customer?.address || '' %>" placeholder="City / Area">
+            </div>
+          </div>
+          <% } else { %>
+          <section class="customer-lookup" data-customer-lookup>
+            <input type="hidden" name="customerId" data-customer-id>
+            <div class="customer-search-control">
+              <label for="billingCustomerSearch">Find existing customer</label>
+              <input id="billingCustomerSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Search by name or mobile" data-customer-search>
+              <div class="customer-search-results" data-customer-search-results role="listbox" hidden></div>
+            </div>
+            <button class="button ghost small customer-new-action" type="button" data-new-customer-open>+ New customer</button>
+            <div class="cust-status-badge" data-customer-status>
+              Enter a customer name. Mobile number is optional.
+            </div>
+
+            <div class="cust-existing-box" data-existing-customer hidden>
+              <div class="cust-existing-info">
+                <strong data-existing-name></strong>
+                <span data-existing-details></span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <label style="margin:0; font-size:10.5px; display:inline-flex; align-items:center; gap:4px; font-weight:700; color:#2e7d32;">
+                  <span>PAN (opt):</span>
+                  <input name="existingCustomerPan" data-existing-pan placeholder="e.g. ABCDE1234F" maxlength="10" autocomplete="off" style="padding:4px 7px; font-size:11.5px; width:110px; text-transform:uppercase; border:1px solid #a3d9b8; border-radius:6px;">
+                </label>
+                <a class="button ghost small" data-existing-ledger href="#" hidden style="background:#fff; border-color:#a3d9b8; color:#145a32; padding:3px 8px; font-size:11px;">Open Ledger →</a>
+              </div>
+            </div>
+
+            <div class="cust-new-grid" data-new-customer-fields hidden>
+              <div class="pos-field">
+                <label>Customer Name *</label>
+                <input name="customerName" disabled data-customer-name data-customer-autocomplete data-uppercase placeholder="Customer full name">
+              </div>
+              <div class="pos-field">
+                <label>PAN No. (optional)</label>
+                <input name="customerPan" disabled data-customer-pan placeholder="e.g. ABCDE1234F" maxlength="10" autocomplete="off" style="text-transform:uppercase;">
+              </div>
+              <div class="pos-field">
+                <label>Email (optional)</label>
+                <input name="customerEmail" type="email" disabled data-customer-email placeholder="customer@gmail.com">
+              </div>
+              <div class="pos-field">
+                <label>City / Address</label>
+                <input name="customerAddress" disabled data-customer-address data-uppercase placeholder="City / Area">
+              </div>
+            </div>
+          </section>
+          <% } %>
+        </div>
+        <footer class="sale-line-editor-footer">
+          <button class="button ghost" type="button" data-sale-customer-close>Cancel</button>
+          <button class="button" type="button" data-sale-customer-done>Done</button>
+        </footer>
+      </section>
+    </div>
+
+    <div class="modal-overlay sale-urd-modal" id="saleUrdModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="saleUrdModalTitle" aria-hidden="true">
+      <section class="modal-card sale-urd-modal-card" role="document">
+        <header class="modal-header">
+          <div><p class="eyebrow">Old gold exchange</p><h2 id="saleUrdModalTitle">URD buyback adjustment</h2></div>
+          <button class="modal-close-btn" type="button" data-sale-urd-close aria-label="Close URD details">&times;</button>
+        </header>
+        <div class="modal-body sale-urd-modal-body">
+          <input type="checkbox" name="includeUrdPurchase" data-urd-enabled <%= (editingSale && editSale.urd) ? 'checked' : '' %> hidden aria-hidden="true" tabindex="-1">
+
+          <div class="urd-settlement-fields" data-urd-fields hidden>
+            <div class="urd-grid">
+              <div class="pos-field">
+                <label>Metal</label>
+                <select name="urdMetal" data-urd-metal><option value="GOLD" <%= (editingSale && editSale.urd?.metal === 'GOLD') ? 'selected' : '' %>>Gold</option><option value="SILVER" <%= (editingSale && editSale.urd?.metal === 'SILVER') ? 'selected' : '' %>>Silver</option></select>
+              </div>
+              <div class="pos-field">
+                <label>Purity</label>
+                <input name="urdPurity" data-urd-purity-manual maxlength="50" placeholder="e.g. 22K, 24K, 925, 99.9" value="<%= (editingSale && editSale.urd?.purity) ? editSale.urd.purity : '' %>">
+              </div>
+              <div class="pos-field">
+                <label>Gross Wt. (g)</label>
+                <input name="urdGrossWeight" type="number" min="0" step="0.001" value="<%= (editingSale && editSale.urd) ? editSale.urd.grossWeight : 0 %>" data-urd-gross-weight>
+              </div>
+              <div class="pos-field">
+                <label>Net Wt. (g)</label>
+                <input name="urdNetWeight" type="number" min="0" step="0.001" value="<%= (editingSale && editSale.urd) ? editSale.urd.netWeight : 0 %>" data-urd-net-weight>
+              </div>
+              <div class="pos-field">
+                <label>Rate / g (₹)</label>
+                <input name="urdRatePerGram" type="number" min="0" step="0.01" value="<%= (editingSale && editSale.urd) ? editSale.urd.ratePerGram : 0 %>" data-urd-rate data-rate-22="<%= rateInfo.rate ? Number(rateInfo.rate.gold22k) : 0 %>" data-rate-24="<%= rateInfo.rate ? Number(rateInfo.rate.gold24k) : 0 %>" data-rate-silver="<%= rateInfo.rate ? Number(rateInfo.rate.silver) : 0 %>">
+              </div>
+              <div class="pos-field">
+                <label>URD Total (₹)</label>
+                <input name="urdTotalAmount" type="number" min="0" step="0.01" value="<%= (editingSale && editSale.urd) ? editSale.urd.totalAmount : 0 %>" data-urd-amount>
+              </div>
+              <div class="pos-field" style="grid-column: span 2;">
+                <label>Description</label>
+                <input name="urdDescription" data-uppercase placeholder="Old melted gold chain, broken ring, etc." value="<%= (editingSale && editSale.urd?.description) || '' %>">
+              </div>
+            </div>
+          </div>
+        </div>
+        <footer class="sale-line-editor-footer">
+          <button class="button ghost" type="button" data-sale-urd-remove>Remove adjustment</button>
+          <button class="button ghost" type="button" data-sale-urd-close>Cancel</button>
+          <button class="button" type="button" data-sale-urd-done>Done</button>
+        </footer>
+      </section>
+    </div>
 
     <div class="modal-overlay sale-line-editor-modal" id="saleLineEditorModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="saleLineEditorTitle" aria-hidden="true">
       <section class="modal-card sale-line-editor-modal-card" role="document">
@@ -1231,6 +1357,43 @@
         <footer class="sale-line-editor-footer">
           <button class="button ghost" type="button" data-sale-review-close>Back to edit</button>
           <button class="button" type="button" data-sale-review-confirm>Confirm &amp; Generate Invoice</button>
+        </footer>
+      </section>
+    </div>
+
+    <div class="modal-overlay sale-split-payment-modal" id="saleSplitPaymentModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="saleSplitPaymentTitle" aria-hidden="true">
+      <section class="modal-card sale-split-payment-modal-card" role="document">
+        <header class="modal-header">
+          <div><p class="eyebrow">Payment allocation</p><h2 id="saleSplitPaymentTitle">Split payment</h2></div>
+          <button class="modal-close-btn" type="button" data-split-payment-close aria-label="Close split payment">&times;</button>
+        </header>
+        <div class="modal-body sale-split-payment-modal-body">
+          <p class="muted">Enter the amount received through each payment method.</p>
+          <div class="form-grid two compact-fields" data-split-payment-fields>
+            <div class="pos-field">
+              <label>Cash (₹)</label>
+              <input name="cashPaid" type="number" min="0" step="0.01" value="<%= (editingSale && editSale.initialPayment?.cashPaid !== undefined) ? editSale.initialPayment.cashPaid : '' %>" placeholder="0.00" data-cash-paid disabled>
+            </div>
+            <div class="pos-field">
+              <label>UPI (₹)</label>
+              <input name="upiPaid" type="number" min="0" step="0.01" value="<%= (editingSale && editSale.initialPayment?.upiPaid !== undefined) ? editSale.initialPayment.upiPaid : '' %>" placeholder="0.00" data-upi-paid disabled>
+            </div>
+            <div class="pos-field">
+              <label>Card (₹)</label>
+              <input name="cardPaid" type="number" min="0" step="0.01" value="<%= (editingSale && editSale.initialPayment?.cardPaid !== undefined) ? editSale.initialPayment.cardPaid : '' %>" placeholder="0.00" data-card-paid disabled>
+            </div>
+            <div class="pos-field">
+              <label>Bank transfer (₹)</label>
+              <input name="bankPaid" type="number" min="0" step="0.01" value="<%= (editingSale && editSale.initialPayment?.bankPaid !== undefined) ? editSale.initialPayment.bankPaid : '' %>" placeholder="0.00" data-bank-paid disabled>
+            </div>
+          </div>
+          <div class="split-payment-modal-total">
+            <span>Total allocated</span>
+            <strong data-split-payment-total>₹0.00</strong>
+          </div>
+        </div>
+        <footer class="sale-line-editor-footer">
+          <button class="button" type="button" data-split-payment-close>Done</button>
         </footer>
       </section>
     </div>

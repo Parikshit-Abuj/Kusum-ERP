@@ -8,6 +8,8 @@
     "dev": "node --watch-path=src --watch-path=public src/server.js",
     "start": "node src/server.js",
     "desktop": "electron .",
+    "package:linux": "node scripts/build-electron-linux.mjs",
+    "package:linux:deb": "node scripts/build-electron-deb.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
