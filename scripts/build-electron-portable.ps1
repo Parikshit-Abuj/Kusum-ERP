@@ -84,6 +84,7 @@ New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
   --ignore='^/(?!electron-main\.js$|package\.json$|public(?:/|$)|src(?:/|$)|prisma(?:/|$)|scripts(?:/|$)|node_modules(?:/|$)).*' `
   --ignore='^/scripts/(?!print-tspl\.ps1$|list-printers\.ps1$).*' `
   --ignore='^/prisma/(?!schema\.prisma$|migrations(?:/|$)).*' `
+  --ignore='^/src/lib/unix-printers\.js$' `
   --ignore='^/src/excel-runtime/node_modules(?:/|$)'
 if ($LASTEXITCODE -ne 0) { throw 'Could not package the Electron desktop ERP.' }
 
@@ -114,6 +115,10 @@ if ($unexpectedScripts.Count -gt 0) {
 }
 foreach ($requiredScript in @('print-tspl.ps1', 'list-printers.ps1')) {
   if (-not (Test-Path -LiteralPath (Join-Path $packagedScripts $requiredScript))) { throw "Unsafe build: required runtime script $requiredScript is missing." }
+}
+$packagedUnixPrinter = Join-Path $applicationDirectory 'resources\app\src\lib\unix-printers.js'
+if (Test-Path -LiteralPath $packagedUnixPrinter) {
+  throw 'Unsafe build: the Windows package contains the Linux-only printer backend.'
 }
 
 # Electron Packager prunes development packages. Preserve the generated Prisma
