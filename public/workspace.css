@@ -15,7 +15,9 @@
   --gold-pale: #fef3c7;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   --workspace-side: 226px;
-  background: var(--canvas);
+  background:
+    linear-gradient(rgba(249, 250, 251, .15), rgba(249, 250, 251, .15)),
+    url('/dashboard-background.png') center top / cover fixed no-repeat;
   font-family: 'Segoe UI', system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.5;
@@ -1968,3 +1970,86 @@
   border-radius: 8px;
 }
 
+/* Let the textile background continue behind the toolbar; only its controls
+   receive compact opaque surfaces for reliable contrast. */
+.erp-ui .workspace-toolbar {
+  background: transparent;
+  border-bottom-color: rgba(255, 255, 255, .38);
+  backdrop-filter: none;
+}
+.erp-ui .sidebar-toggle,
+.erp-ui .global-search-trigger,
+.erp-ui .toolbar-language {
+  background: #ffffff;
+  box-shadow: 0 4px 13px rgba(53, 29, 18, .12);
+  white-space: nowrap;
+}
+.erp-ui .sidebar-toggle {
+  width: max-content;
+}
+.erp-ui .global-search-trigger {
+  width: max-content;
+  min-width: 0;
+}
+.erp-ui .toolbar-language {
+  width: max-content;
+  min-width: 0;
+}
+.erp-ui .workspace-breadcrumb {
+  color: rgba(255, 255, 255, .88);
+  text-shadow: 0 1px 4px rgba(53, 29, 18, .42);
+}
+.erp-ui .workspace-breadcrumb strong {
+  color: #ffffff;
+}
+@media (max-width: 900px) {
+  .erp-ui {
+    background-attachment: scroll;
+  }
+}
+
+/* Compact title labels: keep the textile visible and box only the actual title. */
+.erp-ui .main-content > .page-header:not(.overview-heading),
+.erp-ui .page-header:not(.overview-heading) {
+  min-height: 0;
+  padding: 0 0 2px;
+  margin-bottom: 20px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.erp-ui .page-header:not(.overview-heading) h1 {
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 5px 11px 6px;
+  border: 1px solid rgba(224, 207, 181, .95);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111215;
+  box-shadow: 0 4px 14px rgba(53, 29, 18, .14);
+}
+.erp-ui .page-header:not(.overview-heading) .eyebrow {
+  color: #fff7e8;
+  text-shadow: 0 1px 4px rgba(53, 29, 18, .55);
+}
+.erp-ui .page-header:not(.overview-heading) p.muted,
+.erp-ui .page-header:not(.overview-heading) > div:first-child > p:not(.eyebrow) {
+  color: rgba(255, 255, 255, .9);
+  text-shadow: 0 1px 4px rgba(53, 29, 18, .48);
+}
+.erp-ui .page-header:not(.overview-heading) > div:first-child {
+  min-width: 0;
+}
+.erp-ui .report-directory-section > h2 {
+  color: #ffffff;
+  text-shadow: 0 1px 4px rgba(53, 29, 18, .48);
+}
+@media (max-width: 900px) {
+  .erp-ui .main-content > .page-header:not(.overview-heading),
+  .erp-ui .page-header:not(.overview-heading) {
+    padding-bottom: 2px;
+  }
+}

@@ -1,0 +1,92 @@
+<%
+  const _welcomeSettings = typeof businessSettings !== 'undefined' && businessSettings ? businessSettings : {};
+  const _welcomeShop = _welcomeSettings.shopName || 'Kusum Jewelers';
+  const _welcomeUser = String(typeof loggedInUser !== 'undefined' ? loggedInUser || 'cashier' : 'cashier').trim() || 'cashier';
+  const _welcomeFirstName = _welcomeUser.split(/\s+/)[0];
+%>
+
+<section class="welcome-page" aria-labelledby="welcome-title">
+  <div class="welcome-shell">
+    <section class="welcome-hero">
+      <div class="welcome-glow welcome-glow-one" aria-hidden="true"></div>
+      <div class="welcome-glow welcome-glow-two" aria-hidden="true"></div>
+      <div class="welcome-hero-copy">
+        <div class="welcome-brand-line">
+          <span class="welcome-logo"><img src="/kusum-app-icon.png" alt="" aria-hidden="true"></span>
+          <span><%= _welcomeShop %></span>
+        </div>
+        <p class="welcome-kicker"><%= greeting %>, <span data-no-i18n><%= _welcomeFirstName %></span></p>
+        <h1 id="welcome-title">A beautiful day<br>to do <span>great business.</span></h1>
+        <p class="welcome-lede">Your billing desk is ready. Keep every customer conversation warm, every detail precise, and every sale effortless.</p>
+        <div class="welcome-hero-actions">
+          <a class="button welcome-primary" href="/sales/new">
+            <svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#receipt"></use></svg>
+            Start a new sale
+            <span aria-hidden="true">↗</span>
+          </a>
+          <a class="button welcome-secondary" href="/">
+            Open dashboard
+          </a>
+        </div>
+      </div>
+      <div class="welcome-hero-art" aria-hidden="true">
+        <div class="welcome-orbit welcome-orbit-one"></div>
+        <div class="welcome-orbit welcome-orbit-two"></div>
+        <svg class="welcome-diamond" viewBox="0 0 300 300" focusable="false">
+          <defs>
+            <linearGradient id="welcomeGold" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0" stop-color="#fff2b5"></stop>
+              <stop offset=".42" stop-color="#f4bf4d"></stop>
+              <stop offset="1" stop-color="#a96309"></stop>
+            </linearGradient>
+          </defs>
+          <path d="M150 21 269 92 150 279 31 92 150 21Z" fill="none" stroke="url(#welcomeGold)" stroke-width="2"></path>
+          <path d="m31 92 119 2 119-2-119 187L31 92Z" fill="url(#welcomeGold)" opacity=".11"></path>
+          <path d="m31 92 119 2 119-2M150 94v185M86 91l64 3 64-3M91 99l59 180 59-180" fill="none" stroke="#ffe7a0" stroke-opacity=".48" stroke-width="1.4"></path>
+        </svg>
+        <div class="welcome-art-label"><span class="welcome-art-dot"></span> Crafted for clarity</div>
+      </div>
+      <div class="welcome-today">
+        <span>Today</span>
+        <strong><%= todayLabel %></strong>
+      </div>
+    </section>
+
+    <section class="welcome-actions" aria-labelledby="welcome-actions-title">
+      <div class="welcome-section-heading">
+        <div>
+          <p class="eyebrow">Your workspace</p>
+          <h2 id="welcome-actions-title">Where would you like to begin?</h2>
+        </div>
+        <span class="welcome-status"><i aria-hidden="true"></i> ERP is ready</span>
+      </div>
+      <div class="welcome-action-grid">
+        <a class="welcome-action-card welcome-action-sale" href="/sales/new">
+          <span class="welcome-action-icon"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#receipt"></use></svg></span>
+          <span class="welcome-action-copy"><strong>Create a sale</strong><small>Turn a visit into a polished bill</small></span>
+          <span class="welcome-action-arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="welcome-action-card welcome-action-customer" href="/customers">
+          <span class="welcome-action-icon"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#people"></use></svg></span>
+          <span class="welcome-action-copy"><strong>Find a customer</strong><small>Open a ledger or recent history</small></span>
+          <span class="welcome-action-arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="welcome-action-card welcome-action-urd" href="/urd-purchases/new">
+          <span class="welcome-action-icon"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#exchange"></use></svg></span>
+          <span class="welcome-action-copy"><strong>Record old gold</strong><small>Capture a URD purchase cleanly</small></span>
+          <span class="welcome-action-arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="welcome-action-card welcome-action-reports" href="/reports">
+          <span class="welcome-action-icon"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#chart"></use></svg></span>
+          <span class="welcome-action-copy"><strong>Check reports</strong><small>See the numbers behind the day</small></span>
+          <span class="welcome-action-arrow" aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </section>
+
+    <footer class="welcome-footer">
+      <span><span class="welcome-footer-mark">✦</span> One calm screen for a sharper shop floor.</span>
+      <span><span class="welcome-lock" aria-hidden="true">⌁</span> Signed in as <strong data-no-i18n><%= _welcomeUser %></strong></span>
+    </footer>
+  </div>
+</section>

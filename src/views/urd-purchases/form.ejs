@@ -2,9 +2,6 @@
   <div><p class="eyebrow">Old gold / silver buying</p><h1>New URD purchase</h1></div>
   <a class="button ghost" href="/urd-purchases">Cancel</a>
 </header>
-<% if (rateInfo.rate) { %>
-<div class="rate-notice"><strong>Rates in use: <%= rateInfo.sourceDate %></strong><span>22K <%- money(rateInfo.rate.gold22k) %>/g · 24K <%- money(rateInfo.rate.gold24k) %>/g · Silver <%- money(rateInfo.rate.silver) %>/g</span></div>
-<% } %>
 <form class="panel form-panel" method="post" action="/urd-purchases" data-urd-form>
   <section class="form-section urd-customer-section">
     <div class="urd-section-heading"><div><h2>Purchase details</h2><p>Enter the mobile number first to load an existing customer, or create a new profile.</p></div></div>

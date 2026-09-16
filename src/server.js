@@ -744,7 +744,7 @@ app.post('/login', async (req, res) => {
   return regenerateAndSaveSession(req, res, {
     authenticated: true,
     username: process.env.AUTH_USERNAME
-  }, '/', 'Sign-in failed');
+  }, '/welcome', 'Sign-in failed');
 });
 
 app.get('/change-password', (req, res) => {
@@ -786,7 +786,7 @@ app.post('/change-password', async (req, res) => {
     return regenerateAndSaveSession(req, res, {
       authenticated: true,
       username: process.env.AUTH_USERNAME
-    }, '/?message=ERP login password changed securely.', 'Password change failed');
+    }, '/welcome?message=ERP login password changed securely.', 'Password change failed');
   } catch (error) {
     redirectWith(res, '/change-password', 'error', error.message || 'Could not change the ERP password.');
   }
@@ -808,6 +808,22 @@ app.use(async (req, res, next) => {
   } catch (error) {
     return next(error);
   }
+});
+
+app.get('/welcome', (req, res) => {
+  const now = new Date();
+  const hour = now.getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  res.render('welcome', {
+    title: 'Welcome',
+    greeting,
+    todayLabel: now.toLocaleDateString('en-IN', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+  });
 });
 
 function optionalText(value, maximumLength = 1000) {

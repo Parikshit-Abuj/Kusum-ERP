@@ -952,6 +952,38 @@
     .sale-line-editor-footer .button { width: 100%; }
     .sale-line-editor-body .line-specs-grid { grid-template-columns: 1fr; }
   }
+
+  /* Keep the billing title compact so the shared textile remains visible. */
+  .erp-ui .billing-header-strip {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+  .erp-ui .billing-title-text h1 {
+    display: inline-block;
+    width: fit-content;
+    max-width: 100%;
+    padding: 5px 11px 6px;
+    border: 1px solid rgba(224, 207, 181, .95);
+    border-radius: 8px;
+    background: #ffffff;
+    color: #111215;
+    box-shadow: 0 4px 14px rgba(53, 29, 18, .14);
+  }
+  .erp-ui .billing-title-text p {
+    color: rgba(255, 255, 255, .9);
+    text-shadow: 0 1px 4px rgba(53, 29, 18, .48);
+  }
+  .erp-ui .billing-wayfinder a,
+  .erp-ui .billing-wayfinder a:visited {
+    color: #ffffff !important;
+    text-shadow: 0 1px 4px rgba(53, 29, 18, .48);
+  }
+  .erp-ui .billing-wayfinder a:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, .14) !important;
+  }
 </style>
 
 <div class="billing-wrapper">
