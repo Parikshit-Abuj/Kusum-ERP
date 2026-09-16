@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
@@ -37,6 +38,14 @@ function run(command, args, options = {}) {
       reject(new Error(`${command} stopped with ${signal ? `signal ${signal}` : `exit code ${code}`}.`));
     });
   });
+}
+
+function electronCacheDirectory(version, platform, arch) {
+  const downloadUrl = new URL(`https://github.com/electron/electron/releases/download/v${version}/electron-v${version}-${platform}-${arch}.zip`);
+  downloadUrl.hash = '';
+  downloadUrl.search = '';
+  downloadUrl.pathname = path.posix.dirname(downloadUrl.pathname);
+  return crypto.createHash('sha256').update(downloadUrl.toString()).digest('hex');
 }
 
 async function readJson(filePath) {
@@ -86,6 +95,14 @@ async function main() {
   await fs.mkdir(outputPath, { recursive: true });
   const electronCache = path.join(projectRoot, '.electron-cache-linux');
   await fs.mkdir(electronCache, { recursive: true });
+  const cachedElectronZipDirectory = path.join(
+    electronCache,
+    electronCacheDirectory(electronVersion, 'linux', arch)
+  );
+  const cachedElectronZip = path.join(
+    cachedElectronZipDirectory,
+    `electron-v${electronVersion}-linux-${arch}.zip`
+  );
   const packagerArgs = [
     projectRoot,
     'Kusum ERP',
@@ -101,6 +118,11 @@ async function main() {
     '--ignore=^/prisma/(?!schema\\.prisma$|migrations(?:/|$)).*',
     '--ignore=^/src/excel-runtime/node_modules(?:/|$)'
   ];
+  if (await fs.stat(cachedElectronZip).then(() => true).catch(() => false)) {
+    // A cached ZIP is sufficient for an offline build. Passing it directly
+    // avoids @electron/get trying to fetch SHASUMS256.txt from GitHub.
+    packagerArgs.push(`--electron-zip-dir=${cachedElectronZipDirectory}`);
+  }
   if (process.platform !== 'linux') {
     console.warn('Cross-packaging Linux from a non-Linux host. For the most reliable Prisma and native dependency result, run this command on the target Linux build host.');
   }
