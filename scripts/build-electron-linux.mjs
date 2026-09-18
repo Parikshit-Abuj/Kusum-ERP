@@ -147,10 +147,27 @@ async function main() {
   const packagedPrismaRoot = path.join(packagedNodeModules, '.prisma');
   await fs.rm(packagedPrismaRoot, { recursive: true, force: true });
   await fs.mkdir(packagedPrismaRoot, { recursive: true });
-  await fs.cp(generatedClientSource, path.join(packagedPrismaRoot, 'client'), { recursive: true });
-  const packagedClientFiles = await fs.readdir(path.join(packagedPrismaRoot, 'client'));
+  const packagedClientDirectory = path.join(packagedPrismaRoot, 'client');
+  await fs.cp(generatedClientSource, packagedClientDirectory, { recursive: true });
+  const copiedClientFiles = await fs.readdir(packagedClientDirectory);
+  for (const fileName of copiedClientFiles) {
+    // A Windows development host can leave the Windows Prisma engine and
+    // temporary engine copies beside the Linux engine. Keep the Debian
+    // native runtime only in a Debian package.
+    if (/\.tmp/i.test(fileName) || /(?:windows|darwin|win32|\.dll\.node$|\.dylib(?:\.node)?$)/i.test(fileName)) {
+      await fs.rm(path.join(packagedClientDirectory, fileName), { force: true });
+    }
+  }
+  const packagedClientFiles = await fs.readdir(packagedClientDirectory);
   if (!packagedClientFiles.some((name) => /^(?:lib)?query_engine-(?:debian-openssl-3\.0\.x|linux)/i.test(name))) {
     throw new Error('The packaged application is missing its Linux Prisma query engine.');
+  }
+  const unexpectedNativeEngines = packagedClientFiles.filter((name) =>
+    /^(?:lib)?query_engine.*\.(?:dll|dylib|so)(?:\.node)?$/i.test(name)
+    && !/^(?:lib)?query_engine-(?:debian-openssl-3\.0\.x|linux)/i.test(name)
+  );
+  if (unexpectedNativeEngines.length) {
+    throw new Error(`Unexpected non-Linux Prisma engines remained: ${unexpectedNativeEngines.join(', ')}`);
   }
 
   const copiedEnv = path.join(applicationDirectory, 'resources', 'app', '.env');

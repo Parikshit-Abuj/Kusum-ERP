@@ -133,6 +133,26 @@ New-Item -ItemType Directory -Path $generatedPrismaDirectory -Force | Out-Null
 Copy-Item -LiteralPath $generatedClientSource -Destination $generatedPrismaDirectory -Recurse -Force
 Get-ChildItem -LiteralPath $generatedClientDestination -Filter '*.tmp*' -File -Force | Remove-Item -Force
 
+# The generated client can contain an engine for the host that ran `prisma
+# generate`. A Windows delivery must carry only its Windows native engine;
+# remove Linux/macOS binaries so the package stays platform-specific.
+$foreignPrismaEngines = @(Get-ChildItem -LiteralPath $generatedClientDestination -File -Force | Where-Object {
+  $_.Name -match '(?i)^(?:lib)?query_engine.*\.(?:so|dylib)(?:\.node)?$'
+})
+foreach ($foreignPrismaEngine in $foreignPrismaEngines) {
+  Remove-Item -LiteralPath $foreignPrismaEngine.FullName -Force
+}
+$windowsQueryEngine = Join-Path $generatedClientDestination 'query_engine-windows.dll.node'
+if (-not (Test-Path -LiteralPath $windowsQueryEngine -PathType Leaf)) {
+  throw 'Unsafe build: the packaged Prisma Windows query engine is missing.'
+}
+$remainingForeignPrismaEngines = @(Get-ChildItem -LiteralPath $generatedClientDestination -File -Force | Where-Object {
+  $_.Name -match '(?i)^(?:lib)?query_engine.*\.(?:so|dylib)(?:\.node)?$'
+})
+if ($remainingForeignPrismaEngines.Count -gt 0) {
+  throw "Unsafe build: foreign Prisma engines remained: $($remainingForeignPrismaEngines.Name -join ', ')"
+}
+
 # npm can retain Prisma's optional CLI peer while pruning. The generated client
 # and @prisma/client are the only Prisma runtime pieces the ERP needs; remove
 # migration/config/engine download tooling from the deliverable explicitly.

@@ -1,6 +1,6 @@
 /* ─────────────────────────────────────────────────────────────────
    Kusum Jewelers ERP — workspace.css
-   Luxury Black & Gold Theme with Vibrant High-Contrast Accents
+   Workspace theme with a blue ambient background
    Screen-only workspace design. Loaded after the base feature styles.
    The .erp-ui scope keeps printed documents and standalone invoice layouts intact.
    ───────────────────────────────────────────────────────────────── */
@@ -15,13 +15,69 @@
   --gold-pale: #fef3c7;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   --workspace-side: 226px;
-  background:
-    linear-gradient(rgba(249, 250, 251, .15), rgba(249, 250, 251, .15)),
-    url('/dashboard-background.png') center top / cover fixed no-repeat;
+  --ambient-x: 50%;
+  --ambient-y: 42%;
+  --ambient-shift-x: 0px;
+  --ambient-shift-y: 0px;
+  position: relative;
+  isolation: isolate;
+  overflow-x: hidden;
+  background: linear-gradient(125deg, #050810 0%, #0f1729 46%, #07090f 100%);
   font-family: 'Segoe UI', system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+/* CSS-only ambient mesh: the background slowly breathes and follows the
+   pointer without adding an image dependency or changing page structure. */
+.erp-ui::before,
+.erp-ui::after {
+  content: '';
+  position: fixed;
+  inset: -12%;
+  pointer-events: none;
+}
+.erp-ui::before {
+  z-index: -2;
+  background:
+    radial-gradient(circle at var(--ambient-x) var(--ambient-y), rgba(88, 207, 255, .26) 0 5%, transparent 27%),
+    radial-gradient(ellipse at 7% 12%, rgba(47, 211, 255, .78) 0 5%, transparent 33%),
+    radial-gradient(ellipse at 91% 10%, rgba(101, 93, 255, .70) 0 6%, transparent 31%),
+    radial-gradient(ellipse at 59% 98%, rgba(194, 132, 252, .34) 0 8%, transparent 38%),
+    radial-gradient(ellipse at 49% 45%, rgba(19, 55, 105, .58), transparent 60%),
+    linear-gradient(120deg, #04070e 0%, #101b35 47%, #06080f 100%);
+  filter: blur(26px) saturate(1.24);
+  opacity: .90;
+  transform: translate3d(var(--ambient-shift-x), var(--ambient-shift-y), 0) scale(1.06);
+  animation: erp-ambient-drift 26s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.erp-ui::after {
+  z-index: -1;
+  background:
+    linear-gradient(90deg, transparent calc(var(--ambient-x) - .65px), rgba(93, 212, 255, .22) var(--ambient-x), transparent calc(var(--ambient-x) + .65px)),
+    linear-gradient(0deg, transparent calc(var(--ambient-y) - .65px), rgba(93, 212, 255, .19) var(--ambient-y), transparent calc(var(--ambient-y) + .65px)),
+    radial-gradient(circle at var(--ambient-x) var(--ambient-y), rgba(116, 223, 255, .22) 0 1.5%, transparent 18%),
+    radial-gradient(ellipse at 50% 42%, transparent 17%, rgba(2, 5, 12, .58) 100%),
+    conic-gradient(from 205deg at 50% 48%, transparent 0deg, rgba(55, 174, 255, .09) 56deg, transparent 126deg, rgba(171, 128, 255, .08) 230deg, transparent 310deg);
+  opacity: .92;
+  animation: erp-ambient-sheen 34s ease-in-out infinite alternate;
+}
+@keyframes erp-ambient-drift {
+  0% { transform: translate3d(-3%, -2%, 0) scale(1.06); }
+  48% { transform: translate3d(1.5%, 1%, 0) scale(1.13); }
+  100% { transform: translate3d(4%, -1%, 0) scale(1.08); }
+}
+@keyframes erp-ambient-sheen {
+  0% { transform: translate3d(-1%, 0, 0) scale(1); opacity: .66; }
+  100% { transform: translate3d(2%, 1%, 0) scale(1.04); opacity: .88; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .erp-ui::before,
+  .erp-ui::after,
+  .erp-login .login-page::before,
+  .erp-login .login-page::after { animation: none; }
 }
 
 .erp-ui .ui-icon {
@@ -1090,18 +1146,101 @@
 }
 
 /* Standalone sign-in */
-.erp-login { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+.erp-login {
+  margin: 0;
+  min-height: 100vh;
+  position: relative;
+  isolation: isolate;
+  overflow-x: hidden;
+  --ambient-x: 50%;
+  --ambient-y: 42%;
+  --ambient-shift-x: 0px;
+  --ambient-shift-y: 0px;
+  background: linear-gradient(125deg, #050810 0%, #0f1729 46%, #07090f 100%);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+.erp-login::before,
+.erp-login::after {
+  content: '';
+  position: fixed;
+  inset: -12%;
+  pointer-events: none;
+  display: none;
+}
+.erp-login::before {
+  z-index: -2;
+  background:
+    radial-gradient(circle at var(--ambient-x) var(--ambient-y), rgba(88, 207, 255, .26) 0 5%, transparent 27%),
+    radial-gradient(ellipse at 7% 12%, rgba(47, 211, 255, .78) 0 5%, transparent 33%),
+    radial-gradient(ellipse at 91% 10%, rgba(101, 93, 255, .70) 0 6%, transparent 31%),
+    radial-gradient(ellipse at 59% 98%, rgba(194, 132, 252, .34) 0 8%, transparent 38%),
+    radial-gradient(ellipse at 49% 45%, rgba(19, 55, 105, .58), transparent 60%),
+    linear-gradient(120deg, #04070e 0%, #101b35 47%, #06080f 100%);
+  filter: blur(26px) saturate(1.24);
+  opacity: .90;
+  transform: translate3d(var(--ambient-shift-x), var(--ambient-shift-y), 0) scale(1.06);
+  animation: erp-ambient-drift 26s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.erp-login::after {
+  z-index: -1;
+  background:
+    linear-gradient(90deg, transparent calc(var(--ambient-x) - .65px), rgba(93, 212, 255, .22) var(--ambient-x), transparent calc(var(--ambient-x) + .65px)),
+    linear-gradient(0deg, transparent calc(var(--ambient-y) - .65px), rgba(93, 212, 255, .19) var(--ambient-y), transparent calc(var(--ambient-y) + .65px)),
+    radial-gradient(circle at var(--ambient-x) var(--ambient-y), rgba(116, 223, 255, .22) 0 1.5%, transparent 18%),
+    radial-gradient(ellipse at 50% 42%, transparent 17%, rgba(2, 5, 12, .58) 100%),
+    conic-gradient(from 205deg at 50% 48%, transparent 0deg, rgba(55, 174, 255, .09) 56deg, transparent 126deg, rgba(171, 128, 255, .08) 230deg, transparent 310deg);
+  opacity: .92;
+  animation: erp-ambient-sheen 34s ease-in-out infinite alternate;
+}
 .erp-login .login-page {
   display: grid;
   padding: 0;
   place-items: stretch;
   grid-template-columns: minmax(0, 1.05fr) minmax(420px, .95fr);
-  background: #fdfaf4;
+  position: relative;
+  z-index: 1;
+  background: transparent;
   min-height: 100vh;
+}
+.erp-login .login-page::before,
+.erp-login .login-page::after {
+  content: '';
+  position: absolute;
+  inset: -12%;
+  pointer-events: none;
+}
+.erp-login .login-page::before {
+  z-index: 0;
+  background:
+    radial-gradient(circle at var(--ambient-x) var(--ambient-y), rgba(88, 207, 255, .26) 0 5%, transparent 27%),
+    radial-gradient(ellipse at 7% 12%, rgba(47, 211, 255, .78) 0 5%, transparent 33%),
+    radial-gradient(ellipse at 91% 10%, rgba(101, 93, 255, .70) 0 6%, transparent 31%),
+    radial-gradient(ellipse at 59% 98%, rgba(194, 132, 252, .34) 0 8%, transparent 38%),
+    radial-gradient(ellipse at 49% 45%, rgba(19, 55, 105, .58), transparent 60%),
+    linear-gradient(120deg, #04070e 0%, #101b35 47%, #06080f 100%);
+  filter: blur(26px) saturate(1.24);
+  opacity: .90;
+  transform: translate3d(var(--ambient-shift-x), var(--ambient-shift-y), 0) scale(1.06);
+  animation: erp-ambient-drift 26s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.erp-login .login-page::after {
+  z-index: 0;
+  background:
+    linear-gradient(90deg, transparent calc(var(--ambient-x) - .65px), rgba(93, 212, 255, .22) var(--ambient-x), transparent calc(var(--ambient-x) + .65px)),
+    linear-gradient(0deg, transparent calc(var(--ambient-y) - .65px), rgba(93, 212, 255, .19) var(--ambient-y), transparent calc(var(--ambient-y) + .65px)),
+    radial-gradient(circle at var(--ambient-x) var(--ambient-y), rgba(116, 223, 255, .22) 0 1.5%, transparent 18%),
+    radial-gradient(ellipse at 50% 42%, transparent 17%, rgba(2, 5, 12, .58) 100%),
+    conic-gradient(from 205deg at 50% 48%, transparent 0deg, rgba(55, 174, 255, .09) 56deg, transparent 126deg, rgba(171, 128, 255, .08) 230deg, transparent 310deg);
+  opacity: .92;
+  animation: erp-ambient-sheen 34s ease-in-out infinite alternate;
 }
 .erp-login .login-hero {
   width: 100%;
   min-height: 100vh;
+  position: relative;
+  z-index: 1;
   background: #0b0c10;
   justify-content: flex-end;
 }
@@ -1151,9 +1290,29 @@
   justify-items: center;
   padding: 60px 36px;
   min-height: 100vh;
-  background: #faf8f3;
+  z-index: 1;
+  background: rgba(7, 15, 32, .56);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
-.erp-login .login-form-panel::before,
+.erp-login .login-form-panel::before {
+  content: '';
+  position: absolute;
+  inset: -8%;
+  display: block;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at var(--ambient-x) var(--ambient-y), rgba(55, 194, 255, .34) 0 7%, transparent 34%),
+    radial-gradient(ellipse at 92% 8%, rgba(100, 93, 255, .28) 0 7%, transparent 36%),
+    radial-gradient(ellipse at 12% 92%, rgba(35, 173, 232, .18) 0 6%, transparent 34%),
+    linear-gradient(125deg, rgba(8, 18, 39, .12), rgba(33, 71, 129, .14) 46%, rgba(7, 11, 24, .12));
+  filter: blur(18px) saturate(1.18);
+  opacity: .80;
+  transform: translate3d(var(--ambient-shift-x), var(--ambient-shift-y), 0) scale(1.05);
+  transition: transform .18s ease-out;
+  will-change: transform, background;
+}
 .erp-login .login-form-panel::after { display: none; }
 .erp-login .login-card {
   width: 100%;
@@ -1162,6 +1321,7 @@
   background: transparent;
   border: 0;
   box-shadow: none;
+  z-index: 1;
 }
 .erp-login .login-logo {
   width: 48px;
@@ -1189,23 +1349,23 @@
   font-size: 31px;
   font-weight: 700;
   letter-spacing: -.035em;
-  color: #111215;
+  color: #ffffff;
 }
 .erp-login .login-heading .eyebrow {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: .15em;
-  color: #c98c19;
+  color: #ffffff;
   margin-bottom: 9px;
 }
-.erp-login .login-heading .muted { color: #6b7280; font-size: 13px; margin-top: 10px; }
+.erp-login .login-heading .muted { color: rgba(255, 255, 255, .78); font-size: 13px; margin-top: 10px; }
 .erp-login .login-card form { display: grid; gap: 19px; margin-top: 30px; }
 .erp-login .login-card form label {
   font-size: 11px;
   font-weight: 700;
   text-transform: none;
   letter-spacing: 0;
-  color: #4b5563;
+  color: rgba(255, 255, 255, .90);
   margin: 0;
 }
 .erp-login .login-card form input {
@@ -1238,9 +1398,9 @@
   transform: none;
   box-shadow: 0 4px 16px rgba(217, 119, 6, 0.4);
 }
-.erp-login .login-footer { margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
-.erp-login .login-footer a { font-size: 11px; color: #6b7280; font-weight: 400; }
-.erp-login .login-footer .version { color: #9ca3af; }
+.erp-login .login-footer { margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, .24); }
+.erp-login .login-footer a { font-size: 11px; color: rgba(255, 255, 255, .86); font-weight: 400; }
+.erp-login .login-footer .version { color: rgba(255, 255, 255, .62); }
 .erp-login .login-language {
   position: absolute;
   right: 24px;

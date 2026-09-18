@@ -65,4 +65,44 @@
     applySidebarPreference(collapsed, { persist: false });
   }
 
+  // Let the ambient background gently follow the pointer without changing
+  // any workspace controls or content.
+  const ambientRoot = document.body.classList.contains('erp-ui') || document.body.classList.contains('erp-login')
+    ? document.body
+    : null;
+  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  if (ambientRoot && !reduceMotion) {
+    let targetX = .5;
+    let targetY = .42;
+    let currentX = targetX;
+    let currentY = targetY;
+    let frame = 0;
+
+    const renderAmbientPointer = () => {
+      currentX += (targetX - currentX) * .085;
+      currentY += (targetY - currentY) * .085;
+      ambientRoot.style.setProperty('--ambient-x', `${(currentX * 100).toFixed(2)}%`);
+      ambientRoot.style.setProperty('--ambient-y', `${(currentY * 100).toFixed(2)}%`);
+      ambientRoot.style.setProperty('--ambient-shift-x', `${((currentX - .5) * 34).toFixed(2)}px`);
+      ambientRoot.style.setProperty('--ambient-shift-y', `${((currentY - .42) * 24).toFixed(2)}px`);
+      if (Math.abs(targetX - currentX) > .001 || Math.abs(targetY - currentY) > .001) {
+        frame = window.requestAnimationFrame(renderAmbientPointer);
+      } else {
+        frame = 0;
+      }
+    };
+
+    const setAmbientTarget = event => {
+      targetX = Math.min(1, Math.max(0, event.clientX / Math.max(window.innerWidth, 1)));
+      targetY = Math.min(1, Math.max(0, event.clientY / Math.max(window.innerHeight, 1)));
+      if (!frame) frame = window.requestAnimationFrame(renderAmbientPointer);
+    };
+    window.addEventListener('pointermove', setAmbientTarget, { passive: true });
+    window.addEventListener('pointerleave', () => {
+      targetX = .5;
+      targetY = .42;
+      if (!frame) frame = window.requestAnimationFrame(renderAmbientPointer);
+    }, { passive: true });
+  }
+
 })();
