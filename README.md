@@ -8,8 +8,6 @@ Kusum Jewelers ERP is a production-minded desktop and local-network business app
 
 The repository includes a reproducible, sanitized portfolio invoice. It uses realistic demonstration rates and the requested sample customer profile; it does not contain shop database exports, WhatsApp tokens or production credentials.
 
-![Sample A4 sales invoice](docs/portfolio/assets/sales-invoice-preview.png)
-
 - [Open the sample sales invoice PDF](docs/portfolio/assets/Kusum-ERP-demo-sales-invoice.pdf)
 - [Read the portfolio architecture](docs/portfolio/architecture.md)
 - [Review the demo fixture and rate assumptions](docs/portfolio/demo-sale.cjs)
