@@ -1,4 +1,4 @@
-# Kusum Jewelers ERP
+# Kusum ERP
 
 Kusum Jewelers ERP is a practical billing and shop-management app for jewellery businesses. It keeps inventory, daily metal rates, customer accounts, sales, payments and documents in one place.
 
