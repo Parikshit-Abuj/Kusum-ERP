@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   // Keep the native engine for the build host and include the Ubuntu/Debian
   // engine used by the first Linux release target.
   binaryTargets = ["native", "debian-openssl-3.0.x"]
@@ -76,6 +76,8 @@ model Customer {
   id                Int                @id @default(autoincrement())
   name              String
   phone             String?            @unique
+  whatsappOptIn     Boolean            @default(false)
+  whatsappOptInAt   DateTime?
   email             String?
   address           String?            @db.Text
   panNumber         String?            @db.VarChar(20)
@@ -88,6 +90,7 @@ model Customer {
   schemeEnrollments SchemeEnrollment[]
   orders            CustomerOrder[]
   pledgeLoans       PledgeLoan[]
+  whatsappMessages  WhatsAppMessage[]
 
   @@index([createdAt])
 }
@@ -194,6 +197,7 @@ model Sale {
   ledgerEntries   CustomerLedger[]
   urdPurchase     UrdPurchase?
   cashbookEntries CashbookEntry[]
+  whatsappMessage WhatsAppMessage?
 
   @@index([saleDate])
   @@index([cancelledAt, saleDate])
@@ -422,27 +426,27 @@ model SupplierPurchase {
 }
 
 model UrdPurchase {
-  id              Int             @id @default(autoincrement())
-  purchaseNumber  String          @unique
+  id              Int               @id @default(autoincrement())
+  purchaseNumber  String            @unique
   customerId      Int
-  purchaseDate    DateTime        @default(now())
-  metal           MetalType       @default(GOLD)
+  purchaseDate    DateTime          @default(now())
+  metal           MetalType         @default(GOLD)
   purity          String?
-  grossWeight     Decimal         @default(0) @db.Decimal(12, 3)
-  netWeight       Decimal         @default(0) @db.Decimal(12, 3)
-  ratePerGram     Decimal         @default(0) @db.Decimal(12, 2)
-  totalAmount     Decimal         @default(0) @db.Decimal(12, 2)
-  saleOffset      Decimal         @default(0) @db.Decimal(12, 2)
-  paid            Decimal         @default(0) @db.Decimal(12, 2)
-  paymentMethod   PaymentMethod   @default(CASH)
-  description     String?         @db.Text
-  notes           String?         @db.Text
-  saleId          Int?            @unique
+  grossWeight     Decimal           @default(0) @db.Decimal(12, 3)
+  netWeight       Decimal           @default(0) @db.Decimal(12, 3)
+  ratePerGram     Decimal           @default(0) @db.Decimal(12, 2)
+  totalAmount     Decimal           @default(0) @db.Decimal(12, 2)
+  saleOffset      Decimal           @default(0) @db.Decimal(12, 2)
+  paid            Decimal           @default(0) @db.Decimal(12, 2)
+  paymentMethod   PaymentMethod     @default(CASH)
+  description     String?           @db.Text
+  notes           String?           @db.Text
+  saleId          Int?              @unique
   cancelledAt     DateTime?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  customer        Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  sale            Sale?           @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  customer        Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  sale            Sale?             @relation(fields: [saleId], references: [id], onDelete: SetNull)
   cashbookEntries CashbookEntry[]
   items           UrdPurchaseItem[]
 
@@ -456,18 +460,18 @@ model UrdPurchase {
 // each item's description, metal, purity, weight, rate, and valuation for the
 // register and printed receipt.
 model UrdPurchaseItem {
-  id             Int         @id @default(autoincrement())
-  urdPurchaseId  Int
-  description    String?     @db.VarChar(255)
-  metal          MetalType   @default(GOLD)
-  purity         String?     @db.VarChar(50)
-  grossWeight    Decimal     @default(0) @db.Decimal(12, 3)
-  netWeight      Decimal     @default(0) @db.Decimal(12, 3)
-  ratePerGram    Decimal     @default(0) @db.Decimal(12, 2)
-  totalAmount    Decimal     @default(0) @db.Decimal(12, 2)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  urdPurchase    UrdPurchase @relation(fields: [urdPurchaseId], references: [id], onDelete: Cascade)
+  id            Int         @id @default(autoincrement())
+  urdPurchaseId Int
+  description   String?     @db.VarChar(255)
+  metal         MetalType   @default(GOLD)
+  purity        String?     @db.VarChar(50)
+  grossWeight   Decimal     @default(0) @db.Decimal(12, 3)
+  netWeight     Decimal     @default(0) @db.Decimal(12, 3)
+  ratePerGram   Decimal     @default(0) @db.Decimal(12, 2)
+  totalAmount   Decimal     @default(0) @db.Decimal(12, 2)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  urdPurchase   UrdPurchase @relation(fields: [urdPurchaseId], references: [id], onDelete: Cascade)
 
   @@index([urdPurchaseId])
 }
@@ -505,29 +509,66 @@ model AppSession {
 // defaults and label geometry in MySQL means a normal full database backup
 // carries these settings (including the authorised signature) to a new PC.
 model BusinessSettings {
-  id                      Int      @id @default(1)
-  shopName                String   @default("Kusum Jewellers") @db.VarChar(255)
-  shopAddress             String?  @db.Text
-  gstin                   String?  @db.VarChar(20)
-  panNumber               String?  @db.VarChar(20)
-  primaryPhone            String?  @db.VarChar(30)
-  secondaryPhone          String?  @db.VarChar(30)
-  facebookUrl             String?  @db.VarChar(1000)
-  instagramUrl            String?  @db.VarChar(1000)
-  invoicePrefix           String   @default("SB") @db.VarChar(12)
-  financialYearStartMonth Int      @default(4)
-  defaultGstRate          Decimal  @default(3) @db.Decimal(5, 2)
-  defaultHsnCode          String?  @db.VarChar(50)
-  labelShopName           String   @default("KUSUM JEWELLERS") @db.VarChar(80)
-  labelWidthMm            Decimal  @default(81) @db.Decimal(6, 2)
-  labelHeightMm           Decimal  @default(12) @db.Decimal(6, 2)
-  labelGapMm              Decimal  @default(3) @db.Decimal(6, 2)
-  labelSpeed              Int      @default(2)
-  labelDensity            Int      @default(10)
-  signatureImage          Bytes?   @db.LongBlob
-  signatureMimeType       String?  @db.VarChar(50)
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  id                       Int      @id @default(1)
+  shopName                 String   @default("Kusum Jewellers") @db.VarChar(255)
+  shopAddress              String?  @db.Text
+  gstin                    String?  @db.VarChar(20)
+  panNumber                String?  @db.VarChar(20)
+  primaryPhone             String?  @db.VarChar(30)
+  secondaryPhone           String?  @db.VarChar(30)
+  facebookUrl              String?  @db.VarChar(1000)
+  instagramUrl             String?  @db.VarChar(1000)
+  invoicePrefix            String   @default("SB") @db.VarChar(12)
+  financialYearStartMonth  Int      @default(4)
+  defaultGstRate           Decimal  @default(3) @db.Decimal(5, 2)
+  defaultHsnCode           String?  @db.VarChar(50)
+  labelShopName            String   @default("KUSUM JEWELLERS") @db.VarChar(80)
+  labelWidthMm             Decimal  @default(81) @db.Decimal(6, 2)
+  labelHeightMm            Decimal  @default(12) @db.Decimal(6, 2)
+  labelGapMm               Decimal  @default(3) @db.Decimal(6, 2)
+  labelSpeed               Int      @default(2)
+  labelDensity             Int      @default(10)
+  signatureImage           Bytes?   @db.LongBlob
+  signatureMimeType        String?  @db.VarChar(50)
+  whatsappAutoSendInvoices Boolean  @default(false)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+enum WhatsAppMessageStatus {
+  QUEUED
+  SENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  BLOCKED_BILLING
+  BLOCKED_CONFIG
+}
+
+model WhatsAppMessage {
+  id                Int                   @id @default(autoincrement())
+  saleId            Int                   @unique
+  customerId        Int?
+  recipientPhone    String                @db.VarChar(20)
+  templateName      String                @db.VarChar(100)
+  status            WhatsAppMessageStatus @default(QUEUED)
+  providerMessageId String?               @db.VarChar(255)
+  errorCode         String?               @db.VarChar(80)
+  errorMessage      String?               @db.Text
+  attempts          Int                   @default(0)
+  nextAttemptAt     DateTime              @default(now())
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  sale              Sale                  @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  customer          Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([status, nextAttemptAt])
+  @@index([providerMessageId])
+  @@index([customerId, createdAt])
 }
 
 enum SchemeStatus {
@@ -537,17 +578,17 @@ enum SchemeStatus {
 }
 
 model SchemePlan {
-  id             Int                @id @default(autoincrement())
-  name           String             @db.VarChar(255)
-  durationMonths Int
-  monthlyAmount  Decimal            @db.Decimal(12, 2)
-  maturityAmount Decimal            @db.Decimal(12, 2)
-  description    String?            @db.Text
-  isActive       Boolean            @default(true)
+  id                  Int                @id @default(autoincrement())
+  name                String             @db.VarChar(255)
+  durationMonths      Int
+  monthlyAmount       Decimal            @db.Decimal(12, 2)
+  maturityAmount      Decimal            @db.Decimal(12, 2)
+  description         String?            @db.Text
+  isActive            Boolean            @default(true)
   deletionRequestedAt DateTime?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  enrollments    SchemeEnrollment[]
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  enrollments         SchemeEnrollment[]
 }
 
 model SchemeEnrollment {
@@ -570,10 +611,10 @@ model SchemeEnrollment {
   customer         Customer            @relation(fields: [customerId], references: [id], onDelete: Restrict)
   installments     SchemeInstallment[]
 
+  @@unique([schemePlanId, enrollmentNumber])
   @@index([schemePlanId])
   @@index([customerId])
   @@index([status])
-  @@unique([schemePlanId, enrollmentNumber])
 }
 
 model SchemeInstallment {

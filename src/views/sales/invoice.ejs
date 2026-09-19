@@ -13,10 +13,16 @@
     <% const waPhone = rawPhone.length === 10 ? '91' + rawPhone : rawPhone; %>
     <% const grandTotalFmt = Number(sale.total).toLocaleString('en-IN', { minimumFractionDigits: 2 }); %>
     <% const socialLines = [businessSettings?.facebookUrl ? `Facebook: ${businessSettings.facebookUrl}` : '', businessSettings?.instagramUrl ? `Instagram: ${businessSettings.instagramUrl}` : ''].filter(Boolean).join('\n'); const shopName = businessSettings?.shopName || 'Kusum ERP'; const waText = encodeURIComponent(`*${shopName} - Tax Invoice*\n\nNamaste ${sale.customer?.name || 'Customer'},\nThank you for shopping with ${shopName}!\n\n📄 *Invoice No:* ${sale.invoiceNumber}\n📅 *Date:* ${sale.saleDate.toLocaleDateString('en-IN')}\n💰 *Total Amount:* ₹${grandTotalFmt}\n\nPlease find your official Tax Invoice attached.${socialLines ? `\n\nFollow us on Facebook and Instagram:\n${socialLines}` : ''}`); %>
-    <% if (waPhone) { %>
-      <a class="button whatsapp-btn" href="whatsapp://send?phone=<%= waPhone %>&text=<%= waText %>" id="waInvoiceBtn" data-pdf="/sales/<%= sale.id %>/invoice.pdf" title="Open WhatsApp Desktop app with customer">
-        Send via WhatsApp
-      </a>
+    <% if (waPhone && whatsappStatus?.configured && sale.customer?.whatsappOptIn) { %>
+      <form method="post" action="/sales/<%= sale.id %>/whatsapp" style="display:inline"><button class="button whatsapp-btn" type="submit">Send PDF via WhatsApp</button></form>
+    <% } else if (waPhone) { %>
+      <a class="button whatsapp-btn" href="whatsapp://send?phone=<%= waPhone %>&text=<%= waText %>" id="waInvoiceBtn" data-pdf="/sales/<%= sale.id %>/invoice.pdf" title="Open WhatsApp Desktop app with customer">Open WhatsApp manually</a>
+    <% } %>
+    <% if (sale.whatsappMessage) { %>
+      <span class="pill <%= ['SENT','DELIVERED','READ'].includes(sale.whatsappMessage.status) ? 'success' : (['BLOCKED_BILLING','BLOCKED_CONFIG','FAILED'].includes(sale.whatsappMessage.status) ? 'danger' : 'neutral') %>" title="<%= sale.whatsappMessage.errorMessage || '' %>">WhatsApp: <%= sale.whatsappMessage.status.replace('_', ' ').toLowerCase() %></span>
+      <% if (['FAILED','BLOCKED_BILLING','BLOCKED_CONFIG'].includes(sale.whatsappMessage.status) && whatsappStatus?.configured && sale.customer?.whatsappOptIn) { %>
+        <form method="post" action="/sales/<%= sale.id %>/whatsapp" style="display:inline"><input type="hidden" name="resend" value="on"><button class="button ghost small" type="submit">Retry</button></form>
+      <% } %>
     <% } %>
     <a class="button" href="/sales/<%= sale.id %>/invoice.pdf" target="_blank" rel="noopener" id="pdfInvoiceLink">Print / save PDF</a>
     <form method="post" action="/sales/<%= sale.id %>/cancel" onsubmit="return confirm('Cancel this sales bill? Customer ledger, linked payments and linked URD purchase will be reversed. The sold inventory barcode will not be restored.')"><button class="button ghost" type="submit" style="color:#b53d36">Cancel bill</button></form>

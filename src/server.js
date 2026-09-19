@@ -41,6 +41,7 @@ const { createInstallmentSchedule, schemeEndDate, isFullInstallmentPayment } = r
 const { hasConfiguredPassword, passwordMatchesEnvironment, secureTextMatch, usesKnownDefaultPassword } = require('./lib/auth-security');
 const { PrismaSessionStore } = require('./lib/mysql-session-store');
 const { DEFAULT_BUSINESS_SETTINGS, getBusinessSettings, clearBusinessSettingsCache } = require('./lib/business-settings');
+const { getWhatsAppStatus, queueSaleInvoiceMessage, startWhatsAppWorker, verifyWebhookSignature, handleWebhook } = require('./lib/whatsapp');
 let prisma = createPrisma();
 let databaseHealth = { checkedAt: 0, error: null };
 const app = express();
@@ -51,6 +52,12 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('layout', 'layout');
 app.use(expressLayouts);
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+app.use(express.json({
+  limit: '256kb',
+  verify: (req, res, buffer) => {
+    if (req.path === '/webhooks/whatsapp') req.rawBody = Buffer.from(buffer);
+  }
+}));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 if (process.env.NODE_ENV === 'development') app.use(require('morgan')('dev'));
 app.use(session({
@@ -510,6 +517,7 @@ function validCustomerPhone(phone) {
 async function resolveBillingCustomer(tx, body) {
   const phone = normalizePhone(body.customerPhone);
   if (phone && !validCustomerPhone(phone)) throw new Error('Enter a valid customer mobile number (10 to 15 digits), or leave it blank.');
+  const whatsappOptIn = body.whatsappOptIn === 'on';
   const panNumber = String(body.customerPan || body.existingCustomerPan || '').trim().toUpperCase() || null;
   // A blank mobile number is valid for a walk-in customer. Never look up an
   // empty value: otherwise unrelated walk-in customers could be merged.
@@ -518,6 +526,11 @@ async function resolveBillingCustomer(tx, body) {
     if (panNumber && existing.panNumber !== panNumber) {
       await tx.customer.update({ where: { id: existing.id }, data: { panNumber } });
       existing.panNumber = panNumber;
+    }
+    if (whatsappOptIn && !existing.whatsappOptIn) {
+      await tx.customer.update({ where: { id: existing.id }, data: { whatsappOptIn: true, whatsappOptInAt: new Date() } });
+      existing.whatsappOptIn = true;
+      existing.whatsappOptInAt = new Date();
     }
     return existing;
   }
@@ -528,7 +541,9 @@ async function resolveBillingCustomer(tx, body) {
   return tx.customer.create({ data: {
     phone: phone || null, name, email: String(body.customerEmail || '').trim() || null,
     address: titleCase(body.customerAddress) || null,
-    panNumber
+    panNumber,
+    whatsappOptIn,
+    whatsappOptInAt: whatsappOptIn ? new Date() : null
   } });
 }
 
@@ -796,6 +811,25 @@ app.post('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/login'));
 });
 
+// WhatsApp calls this public webhook before the authenticated ERP middleware.
+// The verify token and optional app-secret signature keep it separate from
+// the shop UI while delivery updates stay minimal in the outbox table.
+app.get('/webhooks/whatsapp', (req, res) => {
+  const mode = String(req.query['hub.mode'] || '');
+  const token = String(req.query['hub.verify_token'] || '');
+  const challenge = String(req.query['hub.challenge'] || '');
+  if (mode === 'subscribe' && token && token === String(process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || '')) return res.status(200).send(challenge);
+  return res.sendStatus(403);
+});
+
+app.post('/webhooks/whatsapp', async (req, res, next) => {
+  try {
+    if (!verifyWebhookSignature(req, req.rawBody || Buffer.from(JSON.stringify(req.body || {})))) return res.sendStatus(403);
+    await handleWebhook(prisma, req.body || {});
+    return res.sendStatus(200);
+  } catch (error) { return next(error); }
+});
+
 app.use(async (req, res, next) => {
   if (shopSetupRequired()) return res.redirect('/setup');
   if (!req.session?.authenticated) return res.redirect('/login');
@@ -804,6 +838,7 @@ app.use(async (req, res, next) => {
   }
   try {
     res.locals.businessSettings = await getBusinessSettings(prisma);
+    res.locals.whatsappStatus = getWhatsAppStatus();
     return next();
   } catch (error) {
     return next(error);
@@ -866,9 +901,17 @@ function signatureFromDataUrl(value) {
 
 app.get('/business-settings', requireLoopback, async (req, res, next) => {
   try {
+    const [settings, blockedBilling] = await Promise.all([
+      getBusinessSettings(prisma, { fresh: true }),
+      prisma.whatsAppMessage.count({ where: { status: 'BLOCKED_BILLING' } })
+    ]);
+    const whatsappStatus = blockedBilling > 0
+      ? { key: 'billing', label: 'Billing action needed', configured: getWhatsAppStatus().configured, detail: `${blockedBilling} sales invoice message${blockedBilling === 1 ? '' : 's'} paused after a provider billing error.` }
+      : getWhatsAppStatus();
     res.render('business-settings', {
       title: 'Business settings',
-      settings: await getBusinessSettings(prisma, { fresh: true })
+      settings,
+      whatsappStatus
     });
   } catch (error) { next(error); }
 });
@@ -926,6 +969,7 @@ app.post('/business-settings', requireLoopback, async (req, res) => {
           labelGapMm,
           labelSpeed,
           labelDensity,
+          whatsappAutoSendInvoices: req.body.whatsappAutoSendInvoices === 'on',
           ...(signature || {})
       },
       update: {
@@ -947,6 +991,7 @@ app.post('/business-settings', requireLoopback, async (req, res) => {
           labelGapMm,
           labelSpeed,
           labelDensity,
+          whatsappAutoSendInvoices: req.body.whatsappAutoSendInvoices === 'on',
           ...(removeSignature ? { signatureImage: null, signatureMimeType: null } : (signature || {}))
       }
     });
@@ -1816,7 +1861,8 @@ app.post('/customers', async (req, res, next) => {
   try {
     const phone = normalizePhone(req.body.phone);
     if (phone && !validCustomerPhone(phone)) return redirectWith(res, '/customers', 'error', 'Enter a valid customer mobile number (10 to 15 digits), or leave it blank.');
-    const customer = await prisma.customer.create({ data: { name: titleCase(req.body.name), phone: phone || null, email: req.body.email || null, address: titleCase(req.body.address) || null, panNumber: String(req.body.panNumber || '').trim().toUpperCase() || null } });
+    const whatsappOptIn = req.body.whatsappOptIn === 'on';
+    await prisma.customer.create({ data: { name: titleCase(req.body.name), phone: phone || null, email: req.body.email || null, address: titleCase(req.body.address) || null, panNumber: String(req.body.panNumber || '').trim().toUpperCase() || null, whatsappOptIn, whatsappOptInAt: whatsappOptIn ? new Date() : null } });
     redirectWith(res, '/customers', 'message', 'Customer added.');
   } catch (error) {
     if (error.code === 'P2002') return redirectWith(res, '/customers', 'error', 'That phone number already belongs to a customer.');
@@ -1831,9 +1877,11 @@ app.post('/customers/:id', async (req, res, next) => {
     const name = titleCase(req.body.name);
     if (!name) return redirectWith(res, `/customers/${customerId}`, 'error', 'Enter the customer name.');
     if (phone && !validCustomerPhone(phone)) return redirectWith(res, `/customers/${customerId}`, 'error', 'Enter a valid customer mobile number (10 to 15 digits), or leave it blank.');
+    const whatsappOptIn = req.body.whatsappOptIn === 'on';
     await prisma.customer.update({ where: { id: customerId }, data: {
       name, phone: phone || null, email: String(req.body.email || '').trim() || null,
-      address: titleCase(req.body.address) || null, panNumber: String(req.body.panNumber || '').trim().toUpperCase() || null
+      address: titleCase(req.body.address) || null, panNumber: String(req.body.panNumber || '').trim().toUpperCase() || null,
+      whatsappOptIn, whatsappOptInAt: whatsappOptIn ? new Date() : null
     } });
     redirectWith(res, `/customers/${customerId}`, 'message', 'Customer details updated across linked invoices and registers.');
   } catch (error) {
@@ -2381,6 +2429,16 @@ app.post('/sales', async (req, res, next) => {
       }
       return sale;
     });
+    if (businessSettings.whatsappAutoSendInvoices) {
+      try {
+        const savedSale = await prisma.sale.findUnique({ where: { id: sale.id }, include: { customer: true } });
+        if (savedSale?.customer?.whatsappOptIn) await queueSaleInvoiceMessage(prisma, sale.id);
+      } catch (whatsappError) {
+        // WhatsApp is deliberately best-effort: a billing/API problem must
+        // never roll back a completed sale or prevent the PDF from opening.
+        console.warn(`WhatsApp invoice queue skipped for sale ${sale.id}:`, whatsappError.message);
+      }
+    }
     // Mark only a newly created sale so the invoice screen can clear the local
     // in-progress billing draft. Reopening an older invoice must not discard a
     // cashier's unfinished new bill.
@@ -2957,10 +3015,24 @@ app.post('/sales/:id/cancel', async (req, res, next) => {
   } catch (error) { redirectWith(res, `/sales/${saleId}`, 'error', error.message || 'Could not cancel this invoice.'); }
 });
 
+app.post('/sales/:id/whatsapp', async (req, res) => {
+  const saleId = Number(req.params.id);
+  try {
+    if (!getWhatsAppStatus().configured) throw new Error('WhatsApp Business API is not configured yet. Add its credentials in the ERP environment first.');
+    const message = await queueSaleInvoiceMessage(prisma, saleId, { force: req.body.resend === 'on' });
+    const statusMessage = ['SENT', 'DELIVERED', 'READ'].includes(message.status)
+      ? 'This invoice has already been sent to WhatsApp.'
+      : 'Invoice PDF queued for WhatsApp delivery.';
+    redirectWith(res, `/sales/${saleId}`, 'message', statusMessage);
+  } catch (error) {
+    redirectWith(res, `/sales/${saleId}`, 'error', error.message || 'Could not queue the invoice for WhatsApp.');
+  }
+});
+
 app.get('/sales/:id', async (req, res, next) => {
   try {
-    const sale = await prisma.sale.findFirstOrThrow({ where: { id: Number(req.params.id), cancelledAt: null }, include: { customer: true, urdPurchase: true, items: { include: { product: true } } } });
-    res.render('sales/invoice', { title: sale.invoiceNumber, sale });
+    const sale = await prisma.sale.findFirstOrThrow({ where: { id: Number(req.params.id), cancelledAt: null }, include: { customer: true, urdPurchase: true, items: { include: { product: true } }, whatsappMessage: true } });
+    res.render('sales/invoice', { title: sale.invoiceNumber, sale, whatsappStatus: getWhatsAppStatus() });
   } catch (error) { next(error); }
 });
 
@@ -5738,7 +5810,9 @@ async function startApplicationServer() {
   }
   const mode = String(process.env.KUSUM_DEPLOYMENT_MODE || 'SERVER').toUpperCase();
   const bindHost = process.env.KUSUM_BIND_HOST || (mode === 'CLIENT' ? '127.0.0.1' : '0.0.0.0');
-  return app.listen(port, bindHost, () => console.log(`Kusum ERP running at http://localhost:${port}`));
+  const server = app.listen(port, bindHost, () => console.log(`Kusum ERP running at http://localhost:${port}`));
+  startWhatsAppWorker(prisma);
+  return server;
 }
 
 startApplicationServer().catch((error) => {

@@ -93,6 +93,7 @@
         <div class="form-grid customer-edit-fields">
           <label>Full name *<input name="name" data-uppercase data-customer-autocomplete required autocomplete="off" value="<%= customer.name %>"></label>
           <label>Mobile number / ID<input name="phone" inputmode="numeric" maxlength="15" value="<%= customer.phone || '' %>"></label>
+          <label class="check-row full"><input name="whatsappOptIn" type="checkbox" <%= customer.whatsappOptIn ? 'checked' : '' %>> Customer has opted in to receive sales invoice PDFs on WhatsApp</label>
           <label>Email<input name="email" type="email" value="<%= customer.email || '' %>"></label>
           <label>PAN<input name="panNumber" maxlength="20" data-uppercase value="<%= customer.panNumber || '' %>"></label>
           <label class="full">Address<textarea name="address" data-uppercase rows="3"><%= customer.address || '' %></textarea></label>

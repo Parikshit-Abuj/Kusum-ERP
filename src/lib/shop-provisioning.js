@@ -248,14 +248,15 @@ function printerFormValues(form) {
 
 const REQUIRED_RUNTIME_SCHEMA = {
   AppSession: ['id', 'data', 'expiresAt'],
-  BusinessSettings: ['id', 'shopName', 'shopAddress', 'invoicePrefix', 'financialYearStartMonth', 'defaultGstRate', 'defaultHsnCode', 'signatureImage', 'labelWidthMm', 'labelHeightMm'],
+  BusinessSettings: ['id', 'shopName', 'shopAddress', 'invoicePrefix', 'financialYearStartMonth', 'defaultGstRate', 'defaultHsnCode', 'signatureImage', 'labelWidthMm', 'labelHeightMm', 'whatsappAutoSendInvoices'],
   BarcodeSequence: ['prefix', 'lastNumber', 'updatedAt'],
-  Customer: ['id', 'name', 'phone', 'panNumber', 'createdAt', 'updatedAt'],
+  Customer: ['id', 'name', 'phone', 'panNumber', 'whatsappOptIn', 'whatsappOptInAt', 'createdAt', 'updatedAt'],
   DailyRate: ['id', 'rateDate', 'gold22k', 'gold24k', 'silver'],
   DocumentSequence: ['key', 'lastNumber', 'updatedAt'],
   ItemName: ['id', 'name', 'category', 'createdAt'],
   Product: ['id', 'barcode', 'sku', 'quantity', 'status', 'batchDocNo', 'makingChargeType', 'makingChargeValue', 'createdAt', 'updatedAt'],
   Sale: ['id', 'invoiceNumber', 'cashPaid', 'upiPaid', 'cardPaid', 'bankPaid', 'balance', 'cancelledAt'],
+  WhatsAppMessage: ['id', 'saleId', 'recipientPhone', 'templateName', 'status', 'attempts', 'nextAttemptAt'],
   SaleItem: ['id', 'saleId', 'productBarcode', 'productName', 'productPurity', 'weight', 'makingChargeType', 'makingChargeValue', 'hsnCode', 'huidCode'],
   SchemePlan: ['id', 'name', 'durationMonths', 'monthlyAmount', 'maturityAmount', 'isActive', 'deletionRequestedAt'],
   SchemeEnrollment: ['id', 'enrollmentNumber', 'schemePlanId', 'customerId', 'startDate', 'endDate', 'status', 'totalPaid', 'installmentsPaid'],

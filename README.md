@@ -58,3 +58,22 @@ Use **Recheck printer** to test the Windows queue or TCP connection, then **Test
 ## Security
 
 Do not commit `.env`, database backups, exports, or temporary work files. Configure credentials locally through environment variables.
+
+## Sales invoice PDF WhatsApp automation
+
+The ERP supports only one WhatsApp automation: sending a completed sales invoice PDF. It does not automate reports, purchases, schemes, reminders or marketing messages.
+
+Configure an official WhatsApp Business Cloud API number and an approved utility template with a document header. Add the credentials locally to `.env` (never to source control):
+
+```env
+WHATSAPP_ENABLED=true
+WHATSAPP_ACCESS_TOKEN=...
+WHATSAPP_PHONE_NUMBER_ID=...
+WHATSAPP_TEMPLATE_NAME=invoice_ready
+WHATSAPP_TEMPLATE_LANGUAGE=en
+WHATSAPP_GRAPH_API_VERSION=v23.0
+WHATSAPP_WEBHOOK_VERIFY_TOKEN=...
+WHATSAPP_APP_SECRET=...
+```
+
+The template body must accept three text values: customer name, invoice number and total amount. The customer must have a valid mobile number and explicit WhatsApp opt-in. Enable **Automatically send the sales PDF after a sale is saved** in Business settings. The ERP queues the PDF after the sale transaction commits, sends it through the API worker, and records only the delivery status and provider error metadata. If the provider reports a billing problem, the message is paused without blocking the sale; the PDF remains available for manual download. The webhook URL is `/webhooks/whatsapp` and must be reachable over HTTPS from Meta.

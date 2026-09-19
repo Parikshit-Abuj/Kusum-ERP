@@ -412,20 +412,29 @@ function signatureBox(doc, y, qrImage, sale) {
   doc.font('Helvetica-Bold').fontSize(8).text('Authorised Signatory', signatureX + 10, y + 63, { width: signatureWidth, align: 'center' });
 }
 
-async function writeSaleInvoice(res, sale, businessSettings = {}) {
+async function createSaleInvoicePdf(sale, businessSettings = {}) {
   const invoice = { ...sale, _businessSettings: businessSettings };
   const qrImage = await invoiceQrImage(invoice);
   const doc = new PDFDocument({ size: 'A4', margin: 0, info: { Title: `Tax Invoice ${invoice.invoiceNumber}` } });
+  const chunks = [];
+  return new Promise((resolve, reject) => {
+    doc.on('data', (chunk) => chunks.push(chunk));
+    doc.once('error', reject);
+    doc.once('end', () => resolve(Buffer.concat(chunks)));
+    const tableY = invoiceHeader(doc, invoice);
+    const itemsEnd = renderItems(doc, invoice, tableY);
+    const footerEnd = footerTotals(doc, invoice, itemsEnd + 2);
+    signatureBox(doc, footerEnd, qrImage, invoice);
+    doc.end();
+  });
+}
+
+async function writeSaleInvoice(res, sale, businessSettings = {}) {
+  const invoice = { ...sale, _businessSettings: businessSettings };
   const filename = `${invoice.invoiceNumber.replace(/[^A-Za-z0-9-]/g, '_')}.pdf`;
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
-  doc.pipe(res);
-
-  const tableY = invoiceHeader(doc, invoice);
-  const itemsEnd = renderItems(doc, invoice, tableY);
-  const footerEnd = footerTotals(doc, invoice, itemsEnd + 2);
-  signatureBox(doc, footerEnd, qrImage, invoice);
-  doc.end();
+  res.end(await createSaleInvoicePdf(sale, businessSettings));
 }
 
-module.exports = { writeSaleInvoice, makingDisplay, amountInWords, invoiceQrPayload, positiveInvoicePayments, urdRefundDetails };
+module.exports = { writeSaleInvoice, createSaleInvoicePdf, makingDisplay, amountInWords, invoiceQrPayload, positiveInvoicePayments, urdRefundDetails };

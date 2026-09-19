@@ -28,6 +28,14 @@
   </section>
 
   <section class="panel settings-section">
+    <div class="panel-heading"><div><h2>Sales invoice WhatsApp</h2><p>Only completed sales PDFs are sent. No reports or promotional messages are automated.</p></div></div>
+    <div class="whatsapp-settings-grid">
+      <label class="check-row whatsapp-toggle"><input name="whatsappAutoSendInvoices" type="checkbox" <%= settings.whatsappAutoSendInvoices ? 'checked' : '' %>><span><strong>Automatically send the sales PDF after a sale is saved</strong><small>Requires customer opt-in, an approved utility template and WhatsApp Business API credentials.</small></span></label>
+      <div class="whatsapp-status-card"><span class="status-dot <%= whatsappStatus?.configured ? 'is-connected' : '' %>"></span><div><strong>WhatsApp status: <%= whatsappStatus?.label || 'Not configured' %></strong><small><%= whatsappStatus?.detail || 'Configure the API environment before sending.' %></small></div></div>
+    </div>
+  </section>
+
+  <section class="panel settings-section">
     <div class="panel-heading"><div><h2>Authorised signature</h2></div></div>
     <div class="signature-setting">
       <div class="signature-preview" data-signature-preview><% if (settings.signatureImage) { %><img src="/business-settings/signature" alt="Current authorised signature"><% } else { %><span>The bundled Kusum signature is currently used.</span><% } %></div>
@@ -43,7 +51,7 @@
 </form>
 
 <style>
-.settings-form{display:grid;gap:16px;max-width:1050px}.settings-section{padding:20px}.settings-section .panel-heading{margin:-4px 0 18px}.settings-section label small{display:block;margin-top:5px;color:var(--muted);font-weight:500}.signature-setting{display:grid;grid-template-columns:minmax(220px,360px) 1fr;gap:24px;align-items:center}.signature-preview{height:110px;border:1px dashed var(--border);border-radius:12px;background:#fff;display:grid;place-items:center;overflow:hidden;color:var(--muted);font-size:12px}.signature-preview img{max-width:95%;max-height:100px;object-fit:contain}.check-row{display:flex!important;align-items:center;gap:8px;margin-top:10px}.check-row input{width:auto}.settings-save{position:sticky;bottom:14px;display:flex;justify-content:flex-end;padding:12px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px)}@media(max-width:700px){.signature-setting{grid-template-columns:1fr}}
+.settings-form{display:grid;gap:16px;max-width:1050px}.settings-section{padding:20px}.settings-section .panel-heading{margin:-4px 0 18px}.settings-section label small{display:block;margin-top:5px;color:var(--muted);font-weight:500}.signature-setting{display:grid;grid-template-columns:minmax(220px,360px) 1fr;gap:24px;align-items:center}.signature-preview{height:110px;border:1px dashed var(--border);border-radius:12px;background:#fff;display:grid;place-items:center;overflow:hidden;color:var(--muted);font-size:12px}.signature-preview img{max-width:95%;max-height:100px;object-fit:contain}.check-row{display:flex!important;align-items:center;gap:8px;margin-top:10px}.check-row input{width:auto}.whatsapp-settings-grid{display:grid;grid-template-columns:minmax(280px,1fr) minmax(260px,1fr);gap:16px;align-items:stretch}.whatsapp-toggle{margin:0;padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface-muted,#f8fafc)}.whatsapp-toggle span{display:grid;gap:3px}.whatsapp-status-card{display:flex;align-items:flex-start;gap:10px;padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface-muted,#f8fafc)}.whatsapp-status-card small{display:block;margin-top:4px;color:var(--muted)}.status-dot{width:10px;height:10px;flex:0 0 auto;margin-top:5px;border-radius:50%;background:#94a3b8}.status-dot.is-connected{background:#16a34a;box-shadow:0 0 0 4px rgba(22,163,74,.12)}.settings-save{position:sticky;bottom:14px;display:flex;justify-content:flex-end;padding:12px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px)}@media(max-width:700px){.signature-setting{grid-template-columns:1fr}.whatsapp-settings-grid{grid-template-columns:1fr}}
 </style>
 <script>
 (() => {

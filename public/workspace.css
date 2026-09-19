@@ -566,6 +566,21 @@
 .erp-ui :is(input[type='checkbox'], input[type='radio']) {
   accent-color: #d97706;
 }
+.erp-ui .check-row {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 9px;
+  line-height: 1.35;
+  cursor: pointer;
+}
+.erp-ui .check-row > input[type='checkbox'] {
+  flex: 0 0 17px;
+  width: 17px !important;
+  height: 17px;
+  margin: 1px 0 0 !important;
+  padding: 0;
+  cursor: pointer;
+}
 .erp-ui .form-grid { gap: 15px; }
 .erp-ui .form-section { padding: 22px; }
 .erp-ui .form-section + .form-section { border-top: 1px solid #e5e7eb; }

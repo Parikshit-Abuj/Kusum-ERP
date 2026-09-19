@@ -801,6 +801,8 @@
   .sale-customer-modal-body,
   .sale-urd-modal-body,
   .sale-split-payment-modal-body { max-height: min(72vh, 660px); overflow-y: auto; padding: 20px 24px !important; }
+  .whatsapp-optin-row { margin: 0 0 8px; padding: 10px 12px; border: 1px solid #eadfca; border-radius: 10px; background: #fffaf0; color: #5f513f; font-size: 11px; font-weight: 750; }
+  .whatsapp-optin-row span { display: block; }
   .sale-split-payment-modal-body > p { margin: 0 0 16px; }
   .split-payment-edit { align-self: flex-start; margin-top: 8px; }
   .split-payment-summary { display: block; margin-top: 6px; color: var(--muted); font-size: 11px; }
@@ -1239,6 +1241,7 @@
               <label>Customer mobile number</label>
               <input name="customerPhone" inputmode="numeric" autocomplete="tel" maxlength="15" placeholder="Optional mobile number" data-customer-phone value="<%= (editingSale && editSale.customer?.phone) ? editSale.customer.phone : '' %>">
             </div>
+            <label class="check-row whatsapp-optin-row"><input name="whatsappOptIn" type="checkbox" <%= editingSale && editSale.customer?.whatsappOptIn ? 'checked' : '' %>><span>Customer opted in for sales PDF on WhatsApp</span></label>
           </div>
 
           <% if (editingSale) { %>

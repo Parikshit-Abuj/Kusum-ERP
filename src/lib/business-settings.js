@@ -19,7 +19,8 @@ const DEFAULT_BUSINESS_SETTINGS = Object.freeze({
   labelSpeed: 2,
   labelDensity: 10,
   signatureImage: null,
-  signatureMimeType: null
+  signatureMimeType: null,
+  whatsappAutoSendInvoices: false
 });
 
 let cached = null;
