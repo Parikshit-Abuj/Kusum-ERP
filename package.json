@@ -10,6 +10,7 @@
     "desktop": "electron .",
     "package:linux": "node scripts/build-electron-linux.mjs",
     "package:linux:deb": "node scripts/build-electron-deb.mjs",
+    "portfolio:pdf": "node scripts/generate-portfolio-pdf.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
