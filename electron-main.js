@@ -93,6 +93,10 @@ async function startErpServer() {
   require('./src/server');
 }
 
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
 function waitForServer(attempts = 40) {
   return new Promise((resolve, reject) => {
     const tryRequest = (remaining) => {
@@ -112,24 +116,16 @@ function waitForServer(attempts = 40) {
 
 async function openErpWindow() {
   try {
-    await startErpServer();
-    await waitForServer();
-    // An ERP desktop launch is a new cashier session. This partition is
-    // in-memory (not `persist:`), so it cannot retain a prior login after the
-    // desktop ERP has been closed. Clear it as a defensive no-op as well.
-    try {
-      await session.fromPartition(cashierSessionPartition).clearStorageData({ storages: ['cookies'] });
-    } catch (error) {
-      // A login prompt is important, but a damaged Chromium cache must never
-      // stop the ERP from opening. The server still enforces authentication.
-      writeStartupLog(`Could not clear previous desktop cookies: ${error.message || error}`);
-    }
+    // Show the branded cinematic intro immediately. The local ERP server can
+    // take a moment to connect to MySQL, so the splash screen gives the user
+    // a deliberate launch moment instead of exposing a blank browser window.
     erpWindow = new BrowserWindow({
       width: 1440,
       height: 920,
       minWidth: 1040,
       minHeight: 720,
       title: 'Kusum ERP',
+      backgroundColor: '#050913',
       // Use the platform-native icon asset for the title bar/taskbar and
       // packaged application.
       icon: applicationIconPath(),
@@ -156,6 +152,27 @@ async function openErpWindow() {
       event.preventDefault();
       if (url.startsWith('https://') || url.startsWith('http://') || url.startsWith('whatsapp://')) shell.openExternal(url);
     });
+
+    const splashStartedAt = Date.now();
+    await erpWindow.loadFile(path.join(__dirname, 'public', 'splash.html'));
+
+    await startErpServer();
+    await waitForServer();
+    // An ERP desktop launch is a new cashier session. This partition is
+    // in-memory (not `persist:`), so it cannot retain a prior login after the
+    // desktop ERP has been closed. Clear it as a defensive no-op as well.
+    try {
+      await session.fromPartition(cashierSessionPartition).clearStorageData({ storages: ['cookies'] });
+    } catch (error) {
+      // A login prompt is important, but a damaged Chromium cache must never
+      // stop the ERP from opening. The server still enforces authentication.
+      writeStartupLog(`Could not clear previous desktop cookies: ${error.message || error}`);
+    }
+    // Keep the intro on screen long enough to feel intentional, while still
+    // loading the login as soon as the server and database are ready.
+    const splashDuration = 3200;
+    const remainingSplashTime = Math.max(0, splashDuration - (Date.now() - splashStartedAt));
+    await wait(remainingSplashTime);
     await erpWindow.loadURL(`http://127.0.0.1:${localPort}`);
   } catch (error) {
     writeStartupLog(error);
