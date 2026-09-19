@@ -11,7 +11,8 @@ const { writeUrdPurchaseInvoice } = require('../src/lib/urd-invoice-pdf');
 const { writePledgeLoanInvoice } = require('../src/lib/pledge-invoice-pdf');
 const { buildExcelExport } = require('../src/lib/excel-export');
 const { businessSettings, sale } = require('../docs/portfolio/demo-sale.cjs');
-const { customerOrder, enrollment, schemeInstallments, urdPurchase, pledgeLoan, excelPayload } = require('../docs/portfolio/demo-documents.cjs');
+const { customerOrder, enrollment, schemeInstallments, urdPurchase, pledgeLoan } = require('../docs/portfolio/demo-documents.cjs');
+const { excelReports } = require('../docs/portfolio/demo-excel-reports.cjs');
 
 const outputDir = path.resolve('docs/portfolio/assets');
 
@@ -60,10 +61,12 @@ await writePdf('Kusum-ERP-demo-scheme-consolidated.pdf', await capturePdf(writeS
 await writePdf('Kusum-ERP-demo-urd-purchase.pdf', await capturePdf(writeUrdPurchaseInvoice, urdPurchase, businessSettings));
 await writePdf('Kusum-ERP-demo-pledge-loan.pdf', await capturePdf(writePledgeLoanInvoice, pledgeLoan, businessSettings));
 
-const workbook = await buildExcelExport(excelPayload);
-if (!Buffer.isBuffer(workbook) || workbook.subarray(0, 2).toString() !== 'PK') {
-  throw new Error('The portfolio workbook was not generated as an XLSX archive.');
+for (const excelPayload of excelReports) {
+  const workbook = await buildExcelExport(excelPayload);
+  if (!Buffer.isBuffer(workbook) || workbook.subarray(0, 2).toString() !== 'PK') {
+    throw new Error(`${excelPayload.filename} was not generated as an XLSX archive.`);
+  }
+  const workbookPath = path.join(outputDir, excelPayload.filename);
+  await fs.writeFile(workbookPath, workbook);
+  console.log(`Generated ${workbookPath} (${workbook.length} bytes)`);
 }
-const workbookPath = path.join(outputDir, excelPayload.filename);
-await fs.writeFile(workbookPath, workbook);
-console.log(`Generated ${workbookPath} (${workbook.length} bytes)`);

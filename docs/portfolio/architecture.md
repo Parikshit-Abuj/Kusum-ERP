@@ -31,4 +31,4 @@ The ERP generates the sales invoice PDF first. Only when WhatsApp is explicitly 
 
 ## Demo safety
 
-The portfolio fixture is deterministic and database-free. It uses sample gold and silver rates, a sample customer profile supplied for the portfolio, and no real shop transaction history. Keep `.env`, MySQL backups, exported spreadsheets and WhatsApp secrets outside Git.
+The portfolio fixture is deterministic and database-free. It uses sample gold and silver rates, a sample customer profile supplied for the portfolio, and no real shop transaction history. Keep `.env`, MySQL backups, private shop exports and WhatsApp secrets outside Git; the dummy documents in `docs/portfolio/assets/` are intentionally tracked for demonstration.
