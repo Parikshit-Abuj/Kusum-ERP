@@ -3,140 +3,42 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kusum ERP</title>
+  <meta name="color-scheme" content="dark">
+  <title>KUSUM ERP</title>
   <style>
-    :root {
-      color-scheme: dark;
-      --ink: #f5f8ff;
-      --muted: #8e9ab4;
-      --blue: #56b8ff;
-      --violet: #786cff;
-      --gold: #f6c85f;
-    }
-
+    :root { color-scheme: dark; }
     * { box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #010205; }
-    body {
-      display: grid;
-      place-items: center;
-      position: relative;
-      isolation: isolate;
-      color: var(--ink);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #000; }
+    body { display: grid; place-items: center; color: #fff; font-family: Arial, Helvetica, sans-serif; }
+    .splash { display: grid; place-items: center; text-align: center; width: 100%; height: 100%; }
+    .lockup { transform: translateY(8px); animation: lockup-in 900ms cubic-bezier(.2,.8,.2,1) 120ms both; }
+    .wordmark { display: flex; justify-content: center; gap: .025em; font-size: clamp(64px, 12vw, 164px); font-weight: 800; letter-spacing: -.08em; line-height: .82; }
+    .glyph { display: inline-block; opacity: 0; transform: translateY(26px) scale(.9); animation: glyph-in 650ms cubic-bezier(.2,.8,.2,1) calc(260ms + var(--delay)) both; }
+    .erp { margin-top: 24px; font-size: clamp(16px, 2.6vw, 34px); font-weight: 700; letter-spacing: .62em; text-indent: .62em; opacity: 0; animation: erp-in 700ms ease-out 930ms both; }
+    .rule { width: min(290px, 45vw); height: 1px; margin: 22px auto 0; background: #fff; opacity: 0; transform: scaleX(.2); animation: rule-in 700ms ease-out 1.02s both; }
+    @keyframes lockup-in { from { opacity: 0; transform: translateY(22px) scale(.97); } to { opacity: 1; transform: translateY(8px) scale(1); } }
+    @keyframes glyph-in { from { opacity: 0; transform: translateY(26px) scale(.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes erp-in { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes rule-in { from { opacity: 0; transform: scaleX(.2); } to { opacity: .6; transform: scaleX(1); } }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; }
+      .lockup, .glyph, .erp, .rule { opacity: 1; transform: none; }
     }
-    body::before, body::after {
-      content: "";
-      position: absolute;
-      z-index: -1;
-      width: 120%;
-      height: 1px;
-      opacity: .6;
-      pointer-events: none;
-      transform-origin: center;
-    }
-    body::before { top: 22%; left: -10%; background: linear-gradient(90deg, transparent, rgba(76, 183, 255, .62), transparent); transform: rotate(-16deg); animation: beamOne 5.8s ease-in-out infinite; }
-    body::after { bottom: 25%; left: -10%; background: linear-gradient(90deg, transparent, rgba(128, 105, 255, .5), transparent); transform: rotate(16deg); animation: beamTwo 7.5s 1.4s ease-in-out infinite; }
-    .aurora {
-      position: absolute;
-      inset: -25%;
-      z-index: -2;
-      background: radial-gradient(ellipse at 50% 42%, rgba(26, 76, 126, .22), transparent 38%), radial-gradient(ellipse at 78% 16%, rgba(74, 56, 164, .2), transparent 42%), linear-gradient(135deg, #010205 0%, #050914 48%, #020308 100%);
-      animation: aurora 18s ease-in-out infinite alternate;
-    }
-    .grid {
-      position: absolute;
-      inset: 0;
-      z-index: -1;
-      opacity: .19;
-      background-image: linear-gradient(rgba(142, 181, 232, .07) 1px, transparent 1px), linear-gradient(90deg, rgba(142, 181, 232, .07) 1px, transparent 1px);
-      background-size: 68px 68px;
-      mask-image: radial-gradient(ellipse at center, #000 8%, transparent 74%);
-      animation: gridMove 20s linear infinite;
-    }
-    .scanline {
-      position: absolute;
-      top: -20%;
-      left: 0;
-      width: 100%;
-      height: 20%;
-      z-index: 1;
-      pointer-events: none;
-      background: linear-gradient(to bottom, transparent, rgba(111, 196, 255, .07), transparent);
-      animation: scan 5.8s ease-in-out infinite;
-    }
-    .intro { width: min(980px, calc(100vw - 64px)); text-align: center; animation: introIn 1.15s cubic-bezier(.2, .78, .2, 1) both; perspective: 1100px; }
-    .crest {
-      width: 116px;
-      height: 116px;
-      display: grid;
-      place-items: center;
-      margin: 0 auto 30px;
-      border: 1px solid rgba(255, 255, 255, .22);
-      border-radius: 50%;
-      background: #05070c;
-      box-shadow: 0 0 0 1px rgba(246, 200, 95, .2), 0 0 0 15px rgba(84, 173, 255, .025), 0 0 54px rgba(84, 173, 255, .3), inset 0 0 28px rgba(255, 255, 255, .06);
-      animation: crestIn 1.2s 1.65s cubic-bezier(.2, .85, .2, 1) both, crestFloat 5s 2.85s ease-in-out infinite;
-    }
-    .crest img { width: 88px; height: 88px; object-fit: contain; filter: drop-shadow(0 5px 10px rgba(0, 0, 0, .44)); }
-    .eyebrow { margin: 0 0 17px; color: rgba(214, 225, 243, .66); font-size: 10px; font-weight: 700; letter-spacing: .46em; text-transform: uppercase; animation: riseIn .9s 1.72s both; }
-    .brand-lockup { margin: 0; color: var(--ink); text-shadow: 0 12px 42px rgba(0, 0, 0, .5); }
-    .brand-word { display: flex; justify-content: center; align-items: center; transform-style: preserve-3d; }
-    .brand-word-main { min-height: 1em; font-size: clamp(58px, 10vw, 138px); font-weight: 900; letter-spacing: -.08em; line-height: .84; }
-    .brand-word-sub { margin-top: 20px; min-height: 1em; font-size: clamp(23px, 3vw, 42px); font-weight: 800; letter-spacing: .42em; line-height: .92; text-indent: .42em; }
-    .letter { display: block; position: relative; color: #f5f9ff; opacity: 0; transform: translate3d(calc(var(--sx) * 1vw), calc(var(--sy) * 1vh), -620px) rotateX(var(--rx)) rotateY(var(--ry)) rotateZ(var(--rz)) scale(.5); filter: blur(5px); animation: letterAssemble 1.05s var(--delay) cubic-bezier(.16, .77, .18, 1) forwards; }
-    .letter::after { content: attr(data-letter); position: absolute; inset: 3px -4px -3px 4px; z-index: -1; color: rgba(63, 140, 202, .42); transform: translateZ(-20px); filter: blur(1px); }
-    .brand-word-sub .letter { color: transparent; background: linear-gradient(110deg, #ffffff 8%, #9ed8ff 52%, #9c8dff 94%); -webkit-background-clip: text; background-clip: text; filter: blur(4px); animation-duration: .9s; }
-    .brand-word-sub .letter::after { display: none; }
-    .tagline { margin: 27px 0 0; color: rgba(220, 231, 249, .6); font-size: clamp(11px, 1.15vw, 14px); letter-spacing: .24em; text-transform: uppercase; animation: riseIn .9s 1.86s both; }
-    .progress-wrap { width: min(260px, 52vw); margin: 42px auto 0; animation: riseIn .9s 2s both; }
-    .progress-line { height: 2px; overflow: hidden; border-radius: 2px; background: rgba(172, 197, 230, .16); }
-    .progress-line::after { content: ""; display: block; width: 42%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--violet), var(--gold)); box-shadow: 0 0 18px rgba(95, 185, 255, .8); animation: loading 2.3s .55s cubic-bezier(.45, .05, .55, .95) forwards; }
-    .status { display: flex; justify-content: center; align-items: center; gap: 9px; margin-top: 14px; color: var(--muted); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; animation: riseIn .9s 1.2s both; }
-    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 12px var(--blue); animation: pulse 1.4s ease-in-out infinite; }
-    .footer { position: absolute; right: 28px; bottom: 24px; color: rgba(183, 198, 224, .38); font-size: 9px; letter-spacing: .2em; text-transform: uppercase; animation: riseIn .9s 2.2s both; }
-    @keyframes introIn { from { opacity: 0; transform: scale(.965); } to { opacity: 1; transform: scale(1); } }
-    @keyframes crestIn { from { opacity: 0; transform: translateY(20px) scale(.72) rotate(-8deg); } to { opacity: 1; transform: translateY(0) scale(1) rotate(0); } }
-    @keyframes letterAssemble { 0% { opacity: 0; transform: translate3d(calc(var(--sx) * 1vw), calc(var(--sy) * 1vh), -620px) rotateX(var(--rx)) rotateY(var(--ry)) rotateZ(var(--rz)) scale(.5); filter: blur(5px); } 48% { opacity: 1; filter: blur(2px); } 76% { transform: translate3d(-2px, 1px, 8px) rotateX(1deg) rotateY(-2deg) rotateZ(0) scale(1.02); filter: blur(.2px); } 100% { opacity: 1; transform: translate3d(0, 0, 0) rotateX(0) rotateY(0) rotateZ(0) scale(1); filter: blur(0); } }
-    @keyframes riseIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes crestFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-    @keyframes loading { from { transform: translateX(-110%); } to { transform: translateX(250%); } }
-    @keyframes pulse { 0%, 100% { opacity: .42; transform: scale(.75); } 50% { opacity: 1; transform: scale(1); } }
-    @keyframes aurora { from { transform: translate3d(-2%, 1%, 0) scale(1.02); } to { transform: translate3d(3%, -2%, 0) scale(1.08); } }
-    @keyframes gridMove { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(54px, 54px, 0); } }
-    @keyframes scan { 0%, 20% { transform: translateY(-30vh); opacity: 0; } 45% { opacity: 1; } 80%, 100% { transform: translateY(140vh); opacity: 0; } }
-    @keyframes beamOne { 0%, 18% { transform: translateX(-36%) rotate(-16deg); opacity: 0; } 44% { opacity: .8; } 78%, 100% { transform: translateX(36%) rotate(-16deg); opacity: 0; } }
-    @keyframes beamTwo { 0%, 22% { transform: translateX(38%) rotate(16deg); opacity: 0; } 48% { opacity: .55; } 82%, 100% { transform: translateX(-32%) rotate(16deg); opacity: 0; } }
-    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
-    @media (max-width: 600px) { .crest { width: 88px; height: 88px; margin-bottom: 27px; } .crest img { width: 68px; height: 68px; } .tagline { letter-spacing: .12em; } .footer { right: 18px; bottom: 16px; } }
   </style>
 </head>
 <body>
-  <div class="aurora" aria-hidden="true"></div>
-  <div class="grid" aria-hidden="true"></div>
-  <div class="scanline" aria-hidden="true"></div>
-  <main class="intro" aria-label="Kusum ERP starting">
-    <div class="crest"><img src="kusum-app-icon.png" alt="Kusum Jewellers"></div>
-    <p class="eyebrow">Kusum Jewellers presents</p>
-    <div class="brand-lockup" aria-label="Kusum ERP">
-      <div class="brand-word brand-word-main" aria-hidden="true">
-        <span class="letter" data-letter="K" style="--sx:-46;--sy:-28;--rx:32deg;--ry:-48deg;--rz:-18deg;--delay:.10s">K</span>
-        <span class="letter" data-letter="U" style="--sx:34;--sy:-36;--rx:-42deg;--ry:55deg;--rz:16deg;--delay:.18s">U</span>
-        <span class="letter" data-letter="S" style="--sx:-28;--sy:34;--rx:38deg;--ry:52deg;--rz:21deg;--delay:.26s">S</span>
-        <span class="letter" data-letter="U" style="--sx:48;--sy:26;--rx:-32deg;--ry:-46deg;--rz:-14deg;--delay:.34s">U</span>
-        <span class="letter" data-letter="M" style="--sx:5;--sy:-48;--rx:58deg;--ry:-62deg;--rz:8deg;--delay:.42s">M</span>
+  <main class="splash" aria-label="KUSUM ERP">
+    <section class="lockup">
+      <div class="wordmark" aria-label="KUSUM">
+        <span class="glyph" style="--delay:0ms">K</span>
+        <span class="glyph" style="--delay:80ms">U</span>
+        <span class="glyph" style="--delay:160ms">S</span>
+        <span class="glyph" style="--delay:240ms">U</span>
+        <span class="glyph" style="--delay:320ms">M</span>
       </div>
-      <div class="brand-word brand-word-sub" aria-hidden="true">
-        <span class="letter" style="--sx:-26;--sy:22;--rx:42deg;--ry:-38deg;--rz:-15deg;--delay:.68s">E</span>
-        <span class="letter" style="--sx:18;--sy:-26;--rx:-44deg;--ry:46deg;--rz:18deg;--delay:.77s">R</span>
-        <span class="letter" style="--sx:36;--sy:16;--rx:32deg;--ry:58deg;--rz:-12deg;--delay:.86s">P</span>
-      </div>
-    </div>
-    <p class="tagline">Jewellery management, beautifully in control</p>
-    <div class="progress-wrap" aria-hidden="true">
-      <div class="progress-line"></div>
-      <div class="status"><span class="status-dot"></span>Preparing your workspace</div>
-    </div>
+      <div class="erp">ERP</div>
+      <div class="rule" aria-hidden="true"></div>
+    </section>
   </main>
-  <div class="footer">Secure local workspace · v1.0</div>
 </body>
 </html>
