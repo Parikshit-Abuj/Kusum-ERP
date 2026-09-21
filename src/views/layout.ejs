@@ -1,3 +1,4 @@
+<% const accountDisplayName = String(businessSettings?.shopName || loggedInUser || 'Kusum ERP').trim() || 'Kusum ERP'; %>
 <!doctype html>
 <html lang="en">
   <head>
@@ -56,7 +57,7 @@
         </nav>
         <div class="sidebar-foot">
           <details class="account-menu">
-            <summary><span class="account-avatar" aria-hidden="true" data-no-i18n><%= String(loggedInUser || 'K').slice(0, 1).toUpperCase() %></span><span class="account-copy"><small>Signed in as</small><strong data-no-i18n><%= loggedInUser %></strong></span><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#more"></use></svg></summary>
+            <summary><span class="account-avatar" aria-hidden="true" data-no-i18n><%= accountDisplayName.slice(0, 1).toUpperCase() %></span><span class="account-copy"><small>Signed in as</small><strong data-no-i18n><%= accountDisplayName %></strong></span><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#more"></use></svg></summary>
             <div class="account-options">
               <a href="/change-password">Change password</a>
               <form method="post" action="/logout"><button type="submit">Sign out</button></form>

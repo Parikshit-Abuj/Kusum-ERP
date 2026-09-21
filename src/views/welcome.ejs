@@ -2,6 +2,7 @@
   const _welcomeSettings = typeof businessSettings !== 'undefined' && businessSettings ? businessSettings : {};
   const _welcomeShop = _welcomeSettings.shopName || 'Kusum Jewelers';
   const _welcomeUser = String(typeof loggedInUser !== 'undefined' ? loggedInUser || 'cashier' : 'cashier').trim() || 'cashier';
+  const _welcomeAccount = String(_welcomeShop || _welcomeUser).trim() || 'Kusum ERP';
   const _welcomeFirstName = _welcomeUser.split(/\s+/)[0];
 %>
 
@@ -86,7 +87,7 @@
 
     <footer class="welcome-footer">
       <span><span class="welcome-footer-mark">✦</span> One calm screen for a sharper shop floor.</span>
-      <span><span class="welcome-lock" aria-hidden="true">⌁</span> Signed in as <strong data-no-i18n><%= _welcomeUser %></strong></span>
+      <span><span class="welcome-lock" aria-hidden="true">⌁</span> Signed in as <strong data-no-i18n><%= _welcomeAccount %></strong></span>
     </footer>
   </div>
 </section>
