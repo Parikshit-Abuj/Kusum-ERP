@@ -72,7 +72,13 @@ function octal(value, length) {
 }
 
 function tarHeader(name, { mode = 0o644, size = 0, type = '0', mtime = 0 } = {}) {
-  const normalisedName = name.replace(/\\/g, '/').replace(/^\.\//, '');
+  // A long directory path normally ends in `/`. Splitting that value at its
+  // final slash would leave the tar `name` field empty; POSIX readers treat
+  // that as an end-of-archive marker and never reach subsequent entries.
+  // Directory type already carries the trailing-slash semantics, so omit it
+  // from the stored path before using the USTAR prefix/name split.
+  const suppliedName = name.replace(/\\/g, '/').replace(/^\.\//, '');
+  const normalisedName = type === '5' ? suppliedName.replace(/\/+$/, '') : suppliedName;
   let entryName = normalisedName;
   let prefix = '';
   if (Buffer.byteLength(entryName) > 100) {
