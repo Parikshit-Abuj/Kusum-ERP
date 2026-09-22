@@ -170,7 +170,7 @@ async function openErpWindow() {
     }
     // Keep the intro on screen long enough to feel intentional, while still
     // loading the login as soon as the server and database are ready.
-    const splashDuration = 3200;
+    const splashDuration = 5000;
     const remainingSplashTime = Math.max(0, splashDuration - (Date.now() - splashStartedAt));
     await wait(remainingSplashTime);
     await erpWindow.loadURL(`http://127.0.0.1:${localPort}`);

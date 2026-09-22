@@ -7,38 +7,434 @@
   <title>KUSUM ERP</title>
   <style>
     :root { color-scheme: dark; }
-    * { box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #000; }
-    body { display: grid; place-items: center; color: #fff; font-family: Arial, Helvetica, sans-serif; }
-    .splash { display: grid; place-items: center; text-align: center; width: 100%; height: 100%; }
-    .lockup { transform: translateY(8px); animation: lockup-in 900ms cubic-bezier(.2,.8,.2,1) 120ms both; }
-    .wordmark { display: flex; justify-content: center; gap: .025em; font-size: clamp(64px, 12vw, 164px); font-weight: 800; letter-spacing: -.08em; line-height: .82; }
-    .glyph { display: inline-block; opacity: 0; transform: translateY(26px) scale(.9); animation: glyph-in 650ms cubic-bezier(.2,.8,.2,1) calc(260ms + var(--delay)) both; }
-    .erp { margin-top: 24px; font-size: clamp(16px, 2.6vw, 34px); font-weight: 700; letter-spacing: .62em; text-indent: .62em; opacity: 0; animation: erp-in 700ms ease-out 930ms both; }
-    .rule { width: min(290px, 45vw); height: 1px; margin: 22px auto 0; background: #fff; opacity: 0; transform: scaleX(.2); animation: rule-in 700ms ease-out 1.02s both; }
-    @keyframes lockup-in { from { opacity: 0; transform: translateY(22px) scale(.97); } to { opacity: 1; transform: translateY(8px) scale(1); } }
-    @keyframes glyph-in { from { opacity: 0; transform: translateY(26px) scale(.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
-    @keyframes erp-in { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes rule-in { from { opacity: 0; transform: scaleX(.2); } to { opacity: .6; transform: scaleX(1); } }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #030508; color: #fff;
+      font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+    }
+
+    .stage {
+      position: fixed; inset: 0;
+      display: grid; place-items: center;
+      background: #030508;
+      overflow: hidden;
+    }
+
+    /* ── Starfield canvas ─────────────────────────────────────── */
+    #stars {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      opacity: 0;
+      transition: opacity 2s ease;
+    }
+    #stars.on { opacity: 1; }
+
+    /* ── Horizontal light crack ───────────────────────────────── */
+    .crack {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 0; height: 2px;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      box-shadow: 0 0 30px 8px rgba(180,200,255,.6),
+                  0 0 80px 20px rgba(140,170,255,.3),
+                  0 0 160px 40px rgba(100,140,255,.1);
+      opacity: 0;
+      z-index: 5;
+    }
+    .crack.open {
+      animation: crack-open 1s cubic-bezier(.25,.46,.45,.94) forwards;
+    }
+    @keyframes crack-open {
+      0%   { width: 0; opacity: 0; }
+      20%  { width: 4px; opacity: 1; }
+      100% { width: 70vw; opacity: 1; height: 2px; }
+    }
+    .crack.bloom {
+      animation: crack-bloom 600ms cubic-bezier(.2,.8,.2,1) forwards;
+    }
+    @keyframes crack-bloom {
+      0%   { height: 2px; opacity: 1; }
+      40%  { height: 120vh; opacity: .9; }
+      100% { height: 120vh; opacity: 0; }
+    }
+
+    /* ── Central glow (behind text) ───────────────────────────── */
+    .core-glow {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 600px; height: 300px;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(ellipse at center,
+        rgba(120,150,255,.12) 0%,
+        rgba(80,120,255,.06) 30%,
+        transparent 70%);
+      opacity: 0;
+      z-index: 3;
+    }
+    .core-glow.on {
+      animation: glow-pulse 3s ease-in-out infinite alternate;
+      opacity: 1;
+      transition: opacity 1s ease;
+    }
+    @keyframes glow-pulse {
+      0%   { transform: translate(-50%, -50%) scale(1); opacity: .8; }
+      100% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+    }
+
+    /* ── Text lockup ──────────────────────────────────────────── */
+    .lockup {
+      position: relative; z-index: 10;
+      text-align: center;
+      opacity: 0;
+      transform: scale(.92);
+    }
+    .lockup.reveal {
+      animation: text-reveal 1.2s cubic-bezier(.16,1,.3,1) forwards;
+    }
+    @keyframes text-reveal {
+      0%   { opacity: 0; transform: scale(.92); filter: brightness(4) blur(8px); }
+      40%  { opacity: 1; filter: brightness(2) blur(2px); }
+      70%  { transform: scale(1.01); filter: brightness(1.2) blur(0); }
+      100% { opacity: 1; transform: scale(1); filter: brightness(1) blur(0); }
+    }
+
+    .wordmark {
+      display: flex; justify-content: center; gap: .015em;
+      font-size: clamp(68px, 13vw, 186px);
+      font-weight: 900;
+      letter-spacing: .04em;
+      line-height: .85;
+      color: #fff;
+    }
+    .glyph {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    .glyph.in {
+      animation: glyph-arrive 500ms cubic-bezier(.2,.8,.15,1) forwards;
+      animation-delay: var(--d);
+    }
+    @keyframes glyph-arrive {
+      0%   { opacity: 0; transform: translateY(20px) scale(.85); }
+      60%  { opacity: 1; transform: translateY(-3px) scale(1.04); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .sub-line {
+      margin-top: 18px;
+      font-size: clamp(13px, 2vw, 26px);
+      font-weight: 600;
+      letter-spacing: .48em;
+      text-indent: .48em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.6);
+      opacity: 0;
+    }
+    .sub-line.show {
+      animation: fade-up 700ms ease-out forwards;
+    }
+
+    .divider {
+      width: min(300px, 42vw); height: 1px;
+      margin: 18px auto 0;
+      background: linear-gradient(90deg,
+        transparent,
+        rgba(140,170,255,.3) 15%,
+        rgba(180,200,255,.45) 50%,
+        rgba(140,170,255,.3) 85%,
+        transparent);
+      opacity: 0;
+      transform: scaleX(0);
+    }
+    .divider.show {
+      animation: line-draw 900ms ease-out forwards;
+    }
+
+    .credit {
+      margin-top: 20px;
+      font-size: clamp(12px, 1.4vw, 17px);
+      font-weight: 600;
+      letter-spacing: .22em;
+      color: rgba(255,255,255,.85);
+      text-shadow: 0 0 12px rgba(160,190,255,.4);
+      opacity: 0;
+    }
+    .credit.show {
+      animation: fade-up 900ms ease-out forwards;
+    }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes line-draw {
+      from { opacity: 0; transform: scaleX(0); }
+      to   { opacity: 1; transform: scaleX(1); }
+    }
+
+    /* ── Reduced motion ───────────────────────────────────────── */
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation: none !important; }
-      .lockup, .glyph, .erp, .rule { opacity: 1; transform: none; }
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+      .lockup, .glyph, .sub-line, .divider, .credit { opacity: 1; transform: none; filter: none; }
+      #stars { opacity: 0 !important; }
     }
   </style>
 </head>
 <body>
-  <main class="splash" aria-label="KUSUM ERP">
-    <section class="lockup">
-      <div class="wordmark" aria-label="KUSUM">
-        <span class="glyph" style="--delay:0ms">K</span>
-        <span class="glyph" style="--delay:80ms">U</span>
-        <span class="glyph" style="--delay:160ms">S</span>
-        <span class="glyph" style="--delay:240ms">U</span>
-        <span class="glyph" style="--delay:320ms">M</span>
+  <div class="stage" id="stage">
+
+    <!-- Starfield -->
+    <canvas id="stars"></canvas>
+
+    <!-- Central ambient glow -->
+    <div class="core-glow" id="glow"></div>
+
+    <!-- Light crack -->
+    <div class="crack" id="crack"></div>
+
+    <!-- Text -->
+    <section class="lockup" id="lockup">
+      <div class="wordmark">
+        <span class="glyph" style="--d:0ms">K</span>
+        <span class="glyph" style="--d:60ms">U</span>
+        <span class="glyph" style="--d:120ms">S</span>
+        <span class="glyph" style="--d:180ms">U</span>
+        <span class="glyph" style="--d:240ms">M</span>
       </div>
-      <div class="erp">ERP</div>
-      <div class="rule" aria-hidden="true"></div>
+      <div class="sub-line" id="sub">Jewellery ERP</div>
+      <div class="divider" id="divider" aria-hidden="true"></div>
+      <div class="credit" id="credit">by Parikshit Abuj</div>
     </section>
-  </main>
+  </div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  CINEMATIC INTRO — Light crack → Text reveals from light
+// ═══════════════════════════════════════════════════════════════
+
+// ── Starfield (subtle floating dust motes) ───────────────────
+(function initStars() {
+  const canvas = document.getElementById('stars');
+  const ctx = canvas.getContext('2d');
+  let W, H;
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const COUNT = 120;
+  const stars = [];
+  for (let i = 0; i < COUNT; i++) {
+    stars.push({
+      x: Math.random() * 2000,
+      y: Math.random() * 1200,
+      r: 0.3 + Math.random() * 1.2,
+      drift: (Math.random() - 0.5) * 0.15,
+      floatY: -(0.05 + Math.random() * 0.2),
+      phase: Math.random() * Math.PI * 2,
+      brightness: 0.2 + Math.random() * 0.5
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    const t = performance.now() * 0.001;
+
+    for (const s of stars) {
+      s.x += s.drift;
+      s.y += s.floatY;
+
+      if (s.y < -5) { s.y = H + 5; s.x = Math.random() * W; }
+      if (s.x < -5) s.x = W + 5;
+      if (s.x > W + 5) s.x = -5;
+
+      const twinkle = s.brightness * (0.5 + 0.5 * Math.sin(t * 1.5 + s.phase));
+
+      // Soft glow
+      ctx.beginPath();
+      const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 3);
+      g.addColorStop(0, `rgba(160,180,220,${twinkle * 0.3})`);
+      g.addColorStop(1, 'rgba(160,180,220,0)');
+      ctx.fillStyle = g;
+      ctx.arc(s.x, s.y, s.r * 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Core dot
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(200,210,230,${twinkle})`;
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ── Cinematic Sound — Deep resonant tone + clean impact ──────
+function playSound() {
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    const t = ac.currentTime;
+
+    // Master with limiter
+    const master = ac.createGain();
+    master.gain.setValueAtTime(0.75, t);
+    const limiter = ac.createDynamicsCompressor();
+    limiter.threshold.setValueAtTime(-6, t);
+    limiter.knee.setValueAtTime(3, t);
+    limiter.ratio.setValueAtTime(8, t);
+    limiter.attack.setValueAtTime(0.002, t);
+    limiter.release.setValueAtTime(0.25, t);
+    master.connect(limiter);
+    limiter.connect(ac.destination);
+
+    // ── 1. Deep tonal foundation (musical D1 ≈ 36.7 Hz) ──────
+    const tone = ac.createOscillator();
+    const toneG = ac.createGain();
+    tone.type = 'sine';
+    tone.frequency.setValueAtTime(36.7, t);
+    toneG.gain.setValueAtTime(0, t);
+    toneG.gain.linearRampToValueAtTime(0.6, t + 0.6);
+    toneG.gain.setValueAtTime(0.6, t + 0.8);
+    toneG.gain.exponentialRampToValueAtTime(0.001, t + 3.5);
+    tone.connect(toneG);
+    toneG.connect(master);
+    tone.start(t);
+    tone.stop(t + 3.5);
+
+    // ── 2. Harmonic overtone (octave, 73.4 Hz) ───────────────
+    const oct = ac.createOscillator();
+    const octG = ac.createGain();
+    oct.type = 'sine';
+    oct.frequency.setValueAtTime(73.4, t);
+    octG.gain.setValueAtTime(0, t);
+    octG.gain.linearRampToValueAtTime(0.25, t + 0.6);
+    octG.gain.exponentialRampToValueAtTime(0.001, t + 3.0);
+    oct.connect(octG);
+    octG.connect(master);
+    oct.start(t);
+    oct.stop(t + 3.0);
+
+    // ── 3. Impact moment (at T+0.9s when text reveals) ────────
+    // Clean percussive thump
+    const impactTime = t + 0.9;
+    const imp = ac.createOscillator();
+    const impG = ac.createGain();
+    imp.type = 'sine';
+    imp.frequency.setValueAtTime(100, impactTime);
+    imp.frequency.exponentialRampToValueAtTime(30, impactTime + 0.8);
+    impG.gain.setValueAtTime(0.85, impactTime);
+    impG.gain.exponentialRampToValueAtTime(0.001, impactTime + 1.5);
+    imp.connect(impG);
+    impG.connect(master);
+    imp.start(impactTime);
+    imp.stop(impactTime + 1.5);
+
+    // ── 4. Soft air burst on impact ──────────────────────────
+    const burstLen = ac.sampleRate * 0.4;
+    const burstBuf = ac.createBuffer(1, burstLen, ac.sampleRate);
+    const burstData = burstBuf.getChannelData(0);
+    for (let i = 0; i < burstLen; i++) {
+      // Smooth shaped noise — not harsh
+      const env = Math.pow(1 - i / burstLen, 3);
+      burstData[i] = (Math.random() * 2 - 1) * env * 0.5;
+    }
+    const burstSrc = ac.createBufferSource();
+    burstSrc.buffer = burstBuf;
+    // Bandpass to keep it warm, not harsh
+    const bp = ac.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(250, impactTime);
+    bp.Q.setValueAtTime(0.8, impactTime);
+    const burstG = ac.createGain();
+    burstG.gain.setValueAtTime(0.35, impactTime);
+    burstSrc.connect(bp);
+    bp.connect(burstG);
+    burstG.connect(master);
+    burstSrc.start(impactTime);
+
+    // ── 5. Cinematic pad sustain (warm chord) ────────────────
+    // D2 + A2 + D3 (open fifth voicing, very cinematic)
+    [73.4, 110, 146.8].forEach((freq, idx) => {
+      const pad = ac.createOscillator();
+      const padG = ac.createGain();
+      pad.type = 'sine';
+      pad.frequency.setValueAtTime(freq, impactTime);
+      padG.gain.setValueAtTime(0, impactTime);
+      padG.gain.linearRampToValueAtTime(0.08 / (idx + 1), impactTime + 0.3);
+      padG.gain.setValueAtTime(0.08 / (idx + 1), impactTime + 1.0);
+      padG.gain.exponentialRampToValueAtTime(0.001, impactTime + 3.5);
+      pad.connect(padG);
+      padG.connect(master);
+      pad.start(impactTime);
+      pad.stop(impactTime + 3.5);
+    });
+
+    // ── 6. Reverb tail ───────────────────────────────────────
+    const revLen = ac.sampleRate * 3.5;
+    const revBuf = ac.createBuffer(2, revLen, ac.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = revBuf.getChannelData(ch);
+      for (let i = 0; i < revLen; i++) {
+        d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / revLen, 3);
+      }
+    }
+    const conv = ac.createConvolver();
+    conv.buffer = revBuf;
+    const revG = ac.createGain();
+    revG.gain.setValueAtTime(0.12, t);
+    master.connect(conv);
+    conv.connect(revG);
+    revG.connect(ac.destination);
+
+  } catch (e) { /* non-critical */ }
+}
+
+// ── Choreography ─────────────────────────────────────────────
+(function runIntro() {
+  const stars   = document.getElementById('stars');
+  const glow    = document.getElementById('glow');
+  const crack   = document.getElementById('crack');
+  const lockup  = document.getElementById('lockup');
+  const glyphs  = document.querySelectorAll('.glyph');
+  const sub     = document.getElementById('sub');
+  const divider = document.getElementById('divider');
+  const credit  = document.getElementById('credit');
+
+  // T+0ms: Stars fade in, sound begins building
+  stars.classList.add('on');
+  playSound();
+
+  // T+600ms: Light crack appears
+  setTimeout(() => {
+    crack.classList.add('open');
+  }, 600);
+
+  // T+900ms: Crack blooms open → text materializes from light
+  setTimeout(() => {
+    crack.classList.remove('open');
+    crack.classList.add('bloom');
+    glow.classList.add('on');
+    lockup.classList.add('reveal');
+    glyphs.forEach(g => g.classList.add('in'));
+  }, 1550);
+
+  // T+2.1s: Subtitle
+  setTimeout(() => sub.classList.add('show'), 2100);
+
+  // T+2.4s: Divider line draws
+  setTimeout(() => divider.classList.add('show'), 2400);
+
+  // T+2.8s: Credit fades in
+  setTimeout(() => credit.classList.add('show'), 2800);
+})();
+</script>
 </body>
 </html>
