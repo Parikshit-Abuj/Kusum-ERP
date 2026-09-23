@@ -28,10 +28,10 @@
   </section>
 
   <section class="panel settings-section">
-    <div class="panel-heading"><div><h2>Sales invoice WhatsApp</h2><p>Only completed sales PDFs are sent. No reports or promotional messages are automated.</p></div></div>
+    <div class="panel-heading"><div><h2>Sales invoice WhatsApp</h2></div></div>
     <div class="whatsapp-settings-grid">
-      <label class="check-row whatsapp-toggle"><input name="whatsappAutoSendInvoices" type="checkbox" <%= settings.whatsappAutoSendInvoices ? 'checked' : '' %>><span><strong>Automatically send the sales PDF after a sale is saved</strong><small>Requires customer opt-in, an approved utility template and WhatsApp Business API credentials.</small></span></label>
-      <div class="whatsapp-status-card"><span class="status-dot <%= whatsappStatus?.configured ? 'is-connected' : '' %>"></span><div><strong>WhatsApp status: <%= whatsappStatus?.label || 'Not configured' %></strong><small><%= whatsappStatus?.detail || 'Configure the API environment before sending.' %></small></div></div>
+      <label class="check-row whatsapp-toggle"><input name="whatsappAutoSendInvoices" type="checkbox" <%= settings.whatsappAutoSendInvoices ? 'checked' : '' %>><span><strong>Automatically send the sales PDF after a sale is saved</strong></span></label>
+      <div class="whatsapp-status-card"><span class="status-dot <%= whatsappStatus?.configured ? 'is-connected' : '' %>"></span><div><strong>WhatsApp status: <%= whatsappStatus?.label || 'Not configured' %></strong></div></div>
     </div>
   </section>
 

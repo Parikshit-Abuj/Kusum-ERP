@@ -156,6 +156,25 @@ async function migrationStatementAlreadyApplied(connection, statement, error) {
   const tableMatch = compact.match(/^(?:CREATE TABLE(?: IF NOT EXISTS)?|ALTER TABLE|CREATE(?: UNIQUE)? INDEX .*? ON)\s+`([^`]+)`/i)
     || compact.match(/^CREATE(?: UNIQUE)? INDEX\s+`[^`]+`\s+ON\s+`([^`]+)`/i);
   const table = tableMatch?.[1];
+
+  // MySQL error 3730: Cannot drop a table referenced by a foreign key from
+  // another table.  This legitimately happens when an earlier migration drops a
+  // table that a *later* migration re-creates together with a FK-referencing
+  // child table.  On a fresh run everything succeeds in order, but when
+  // migrations are re-applied on an existing database (e.g. after a
+  // _prisma_migrations reset) the child table already exists and blocks the
+  // DROP.  Temporarily disabling FK checks is safe here because we hold the
+  // exclusive schema-migration lock.
+  if ((error.errno === 3730 || error.code === 'ER_FK_CANNOT_DROP_PARENT') && /^DROP TABLE/i.test(compact)) {
+    try {
+      await connection.query('SET FOREIGN_KEY_CHECKS = 0');
+      await connection.query(statement);
+      return true;
+    } finally {
+      await connection.query('SET FOREIGN_KEY_CHECKS = 1');
+    }
+  }
+
   if (!table) return false;
 
   if (error.code === 'ER_TABLE_EXISTS_ERROR' && /^CREATE TABLE/i.test(compact)) {
